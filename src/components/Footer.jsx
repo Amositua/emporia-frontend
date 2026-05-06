@@ -6,7 +6,7 @@ export function Footer() {
           <div className="flex items-center gap-2">
             <span className="font-bold text-slate-900">EMPORIA</span>
             <span className="text-sm text-slate-600">
-              © 2024 Emporia Protocol. Secure B2B Escrow.
+              © 2026 Emporia Protocol. Secure B2B Escrow.
             </span>
           </div>
 

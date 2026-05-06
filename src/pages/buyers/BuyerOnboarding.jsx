@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { useBuyerLogin } from '../hooks/useProfile';
-import { Lock, Circle as HelpCircle, Shield } from 'lucide-react';
-import { Header } from '../components/Header';
-import { Footer } from '../components/Footer';
+import { useAuth } from '../../context/AuthContext';
+import { useBuyerLogin } from '../../hooks/useProfile';
+import { Lock, Circle as HelpCircle, Shield, ArrowLeft } from 'lucide-react';
+import { Header } from '../../components/Header';
+import { Footer } from '../../components/Footer';
 
 export function BuyerOnboarding() {
   const navigate = useNavigate();
@@ -35,7 +35,7 @@ export function BuyerOnboarding() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
-
+// console.log("form data: ", formData);
     try {
       const fullPhone = `${formData.countryCode}${formData.phoneNumber}`;
 
@@ -44,11 +44,13 @@ export function BuyerOnboarding() {
         inviteCode: formData.inviteCode ? `EMP-${formData.inviteCode}` : undefined,
       });
 
+      console.log('result', result);
+
       login({ role: 'buyer', ...result });
 
       setFormData({ phoneNumber: '', countryCode: '+234', inviteCode: '' });
 
-      navigate('/');
+      navigate('/buyer/dashboard');
     } catch (err) {
       setError(err.message || 'Failed to complete onboarding');
     }
@@ -60,12 +62,19 @@ export function BuyerOnboarding() {
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
       <Header />
 
-      <main className="flex-1 flex items-center justify-center p-4 py-6">
+      <main className="flex-1 flex items-center justify-center p-4 py-6 relative">
+        <button 
+          onClick={() => navigate('/')} 
+          className="absolute top-4 left-4 md:top-8 md:left-8 flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          Back
+        </button>
         <div className="max-w-lg w-full">
           <div className="flex items-start gap-8">
-            <div className="hidden lg:block w-1.5 bg-red-600 h-64 rounded-l-lg"></div>
+            {/* <div className="hidden lg:block w-1.5 bg-red-600 h-64 rounded-l-lg"></div> */}
 
-            <div className="flex-1 bg-white rounded-lg shadow-lg p-5 md:p-7">
+            <div className="flex-1 bg-white rounded-lg shadow-lg p-5 md:p-7 border-l-4 border-red-600">
               <div className="flex items-center justify-center gap-2 mb-3 text-teal-600">
                 <Shield className="w-4 h-4" />
                 <span className="text-xs font-bold">SECURE PROTOCOL</span>
@@ -85,7 +94,7 @@ export function BuyerOnboarding() {
                     PHONE NUMBER
                   </label>
                   <div className="flex gap-2">
-                    <select
+                    {/* <select
                       name="countryCode"
                       value={formData.countryCode}
                       onChange={handleInputChange}
@@ -95,7 +104,7 @@ export function BuyerOnboarding() {
                       <option value="+234">+234 (NG)</option>
                       <option value="+256">+256 (UG)</option>
                       <option value="+254">+254 (KE)</option>
-                    </select>
+                    </select> */}
                     <input
                       type="tel"
                       name="phoneNumber"

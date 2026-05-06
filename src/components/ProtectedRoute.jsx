@@ -10,10 +10,12 @@ export function ProtectedRoute({ children, requiredRole, redirectTo = '/' }) {
   const { user } = useAuth();
 
   if (!user) {
+    console.log(`[ProtectedRoute] No user found, redirecting to ${redirectTo}`);
     return <Navigate to={redirectTo} replace />;
   }
 
   if (requiredRole && user.role !== requiredRole) {
+    console.log(`[ProtectedRoute] Role mismatch: expected ${requiredRole}, got ${user.role}. Redirecting to ${redirectTo}`);
     return <Navigate to={redirectTo} replace />;
   }
 

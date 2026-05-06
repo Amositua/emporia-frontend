@@ -1,8 +1,19 @@
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { ShoppingCart, Store, Truck } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export function RoleSelection() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const validRoles = ['buyer', 'seller', 'driver'];
+    if (user?.role && validRoles.includes(user.role)) {
+      console.log(`[RoleSelection] Redirecting ${user.role} to dashboard`);
+      navigate(`/${user.role}/dashboard`, { replace: true });
+    }
+  }, [user, navigate]);
 
   const roles = [
     {
@@ -62,7 +73,7 @@ export function RoleSelection() {
             {roles.map(({ id, title, description, icon: Icon, path }) => (
               <div
                 key={id}
-                className="bg-white rounded-xl border border-slate-200 p-6 flex flex-col items-center text-center hover:shadow-xl hover:border-red-100 transition duration-300"
+                className="bg-white rounded-xl border border-slate-200 p-6 flex flex-col items-center text-center hover:shadow-lg transition-shadow duration-200 ease-in-out"
               >
                 {/* Icon box — soft red tint */}
                 <div className="w-14 h-14 bg-red-50 rounded-xl flex items-center justify-center mb-4">
@@ -80,7 +91,7 @@ export function RoleSelection() {
                 {/* Red button */}
                 <button
                   onClick={() => navigate(path)}
-                  className="w-full px-4 py-2.5 border-2 border-slate-800 text-slate-800 hover:bg-slate-50 font-bold rounded-lg transition duration-200 uppercase tracking-wide text-sm"
+                  className="w-full px-4 py-2.5 border-2 border-gray-300 text-slate-800 hover:bg-gray-50 font-bold rounded-lg transition duration-200 uppercase tracking-wide text-sm"
                 >
                   Select Role
                 </button>
@@ -92,7 +103,7 @@ export function RoleSelection() {
 
       <footer className="bg-white border-t border-slate-200 py-6 mt-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-500">
-          <p>© 2024 Emporia Protocol. Secure B2B Escrow.</p>
+          <p>© 2026 Emporia Protocol. Secure B2B Escrow.</p>
         </div>
       </footer>
     </div>

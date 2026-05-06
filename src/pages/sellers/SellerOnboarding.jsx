@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { useSellerLogin } from '../hooks/useProfile';
-import { Lock, Circle as HelpCircle, Shield, Building2 } from 'lucide-react';
-import { Header } from '../components/Header';
-import { Footer } from '../components/Footer';
+import { useAuth } from '../../context/AuthContext';
+import { useSellerLogin } from '../../hooks/useProfile';
+import { Lock, Circle as HelpCircle, Shield, Building2, ArrowLeft } from 'lucide-react';
+import { Header } from '../../components/Header';
+import { Footer } from '../../components/Footer';
 
 export function SellerOnboarding() {
   const navigate = useNavigate();
@@ -38,13 +38,14 @@ export function SellerOnboarding() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
-
+console.log("form data: ", formData);
     try {
       const result = await loginMutation.mutateAsync({
         phoneNumber: formData.phoneNumber,
         businessName: formData.businessName,
       });
-      console.log(result);
+      console.log("form data: ", formData);
+      console.log("result: ", result);
       login({ role: 'seller', ...result });
 
       setFormData({ businessName: '', phoneNumber: '' });
@@ -61,12 +62,19 @@ export function SellerOnboarding() {
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
       <Header />
 
-      <main className="flex-1 flex items-center justify-center p-4 py-6">
+      <main className="flex-1 flex items-center justify-center p-4 py-6 relative">
+        <button 
+          onClick={() => navigate('/')} 
+          className="absolute top-4 left-4 md:top-8 md:left-8 flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          Back
+        </button>
         <div className="max-w-lg w-full">
           <div className="flex items-start gap-8">
-            <div className="hidden lg:block w-1.5 bg-red-600 h-64 rounded-l-lg"></div>
+            {/* <div className="hidden lg:block w-1.5 bg-red-600 h-64 rounded-l-lg"></div> */}
 
-            <div className="flex-1 bg-white rounded-lg shadow-lg p-5 md:p-7">
+            <div className="flex-1 bg-white rounded-lg shadow-lg p-5 md:p-7 border-l-4 border-red-600">
               <div className="flex items-center justify-center gap-2 mb-3 text-teal-600">
                 <Shield className="w-4 h-4" />
                 <span className="text-xs font-bold">BANK-GRADE ENCRYPTION ACTIVE</span>

@@ -1,10 +1,34 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Truck, DollarSign, CircleCheck as CheckCircle, Clock, TrendingUp, ExternalLink } from 'lucide-react';
-import { SellerNav } from '../components/SellerNav';
-import { StatsCard } from '../components/StatsCard';
+import { SellerNav } from '../../components/SellerNav';
+import { StatsCard } from '../../components/StatsCard';
+import { BankAccountModal } from '../../components/BankAccountModal';
+import { SellerTradeTab } from './SellerTradeTab';
+import { SellerBuyersTab } from './SellerBuyersTab';
+import { SellerDriversTab } from './SellerDriversTab';
+import { useEffect } from 'react';
 
 export function SellerDashboard() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'overview');
+  const [isBankModalOpen, setIsBankModalOpen] = useState(false);
+
+  useEffect(() => {
+    // Show modal if bank details haven't been set in this browser
+    const hasSetBank = localStorage.getItem('emporia_bank_set');
+    if (!hasSetBank) {
+      const timer = setTimeout(() => {
+        setIsBankModalOpen(true);
+      }, 1500); // Slight delay for better UX
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const handleBankModalClose = () => {
+    setIsBankModalOpen(false);
+    localStorage.setItem('emporia_bank_set', 'true');
+  };
 
   const stats = [
     {
@@ -74,7 +98,7 @@ export function SellerDashboard() {
           <>
             <div className="mb-8">
               <h1 className="text-4xl font-bold text-slate-900 mb-2">
-                Command Center
+               Dashboard Overview
               </h1>
               <p className="text-slate-600">
                 Institutional Seller Dashboard Overview
@@ -148,7 +172,19 @@ export function SellerDashboard() {
           </>
         )}
 
-        {activeTab !== 'overview' && (
+        {activeTab === 'trade' && (
+          <SellerTradeTab />
+        )}
+
+        {activeTab === 'buyers' && (
+          <SellerBuyersTab />
+        )}
+
+        {activeTab === 'goods' && (
+          <SellerDriversTab />
+        )}
+
+        {activeTab !== 'overview' && activeTab !== 'trade' && activeTab !== 'buyers' && activeTab !== 'goods' && (
           <div className="bg-white rounded-lg border border-slate-200 p-12 text-center">
             <p className="text-slate-600 text-lg">
               {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} section coming soon
@@ -156,6 +192,11 @@ export function SellerDashboard() {
           </div>
         )}
       </main>
+
+      <BankAccountModal 
+        isOpen={isBankModalOpen} 
+        onClose={handleBankModalClose} 
+      />
     </div>
   );
 }

@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { useDriverLogin } from '../hooks/useProfile';
-import { Lock, Circle as HelpCircle, Shield } from 'lucide-react';
-import { Header } from '../components/Header';
-import { Footer } from '../components/Footer';
+import { useAuth } from '../../context/AuthContext';
+import { useDriverLogin } from '../../hooks/useProfile';
+import { Lock, Circle as HelpCircle, Shield, ArrowLeft } from 'lucide-react';
+import { Header } from '../../components/Header';
+import { Footer } from '../../components/Footer';
 
 export function DriverOnboarding() {
   const navigate = useNavigate();
@@ -47,19 +47,19 @@ export function DriverOnboarding() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
-
+console.log("form data: ", formData);
     try {
       const result = await loginMutation.mutateAsync({
         phoneNumber: formData.phoneNumber,
         businessName: formData.businessName,
-        linkCode: formData.linkCode,
+        linkCode: `DRV-${formData.linkCode}`,
       });
 
       login({ role: 'driver', ...result });
-
+      console.log('result', result);
       setFormData({ phoneNumber: '', businessName: '', linkCode: '' });
 
-      navigate('/');
+      navigate('/driver/dashboard');
     } catch (err) {
       setError(err.message || 'Failed to complete onboarding');
     }
@@ -71,12 +71,19 @@ export function DriverOnboarding() {
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
       <Header />
 
-      <main className="flex-1 flex items-center justify-center p-4 py-6">
+      <main className="flex-1 flex items-center justify-center p-4 py-6 relative">
+        <button 
+          onClick={() => navigate('/')} 
+          className="absolute top-4 left-4 md:top-8 md:left-8 flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          Back
+        </button>
         <div className="max-w-lg w-full">
           <div className="flex items-start gap-8">
-            <div className="hidden lg:block w-1.5 bg-red-600 h-72 rounded-l-lg"></div>
+            {/* <div className="hidden lg:block w-1.5 bg-red-600 h-72 rounded-l-lg"></div> */}
 
-            <div className="flex-1 bg-white rounded-lg shadow-lg p-5 md:p-7">
+            <div className="flex-1 bg-white rounded-lg shadow-lg p-5 md:p-7 border-l-4 border-red-600">
               <div className="flex items-center justify-center mb-4">
                 <Lock className="w-8 h-8 text-red-600" />
               </div>
@@ -127,6 +134,10 @@ export function DriverOnboarding() {
                     </label>
                     <span className="text-xs font-bold text-red-600">REQUIRED</span>
                   </div>
+                    <div className="relative">
+                  <span className="absolute left-4 top-3.5 text-slate-400 font-semibold">
+                      DRV-
+                    </span>
                   <input
                     type="text"
                     name="linkCode"
@@ -137,6 +148,7 @@ export function DriverOnboarding() {
                     className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition text-center tracking-widest"
                     disabled={isLoading}
                   />
+                  </div>
                 </div>
 
                 {error && (
