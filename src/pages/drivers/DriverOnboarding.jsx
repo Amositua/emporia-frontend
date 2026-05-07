@@ -33,26 +33,25 @@ export function DriverOnboarding() {
       setError('Business name is required');
       return false;
     }
-    if (!formData.linkCode.trim()) {
-      setError('Link code is required');
-      return false;
-    }
-    if (formData.linkCode.length !== 6) {
-      setError('Link code must be 6 digits');
-      return false;
-    }
+    // if (!formData.linkCode.trim()) {
+    //   setError('Link code is required');
+    //   return false;
+    // }
+    // if (formData.linkCode.length !== 6) {
+    //   setError('Link code must be 6 digits');
+    //   return false;
+    // }
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
-console.log("form data: ", formData);
     try {
       const result = await loginMutation.mutateAsync({
         phoneNumber: formData.phoneNumber,
         businessName: formData.businessName,
-        linkCode: `DRV-${formData.linkCode}`,
+        linkCode: formData.linkCode.trim() ? `DRV-${formData.linkCode}` : '',
       });
 
       login({ role: 'driver', ...result });

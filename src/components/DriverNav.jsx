@@ -1,4 +1,4 @@
-import { ChartBar as BarChart3, Truck, MapPin, CheckCircle, Circle as HelpCircle, Bell, Settings, LogOut } from 'lucide-react';
+import { ChartBar as BarChart3, Truck, MapPin, ShoppingBag, HelpCircle, Bell, Settings, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 export function DriverNav({ activeTab, onTabChange }) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   const handleLogout = () => {
     logout();
@@ -15,10 +15,10 @@ export function DriverNav({ activeTab, onTabChange }) {
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
-    { id: 'assignments', label: 'My Assignments', icon: Truck },
-    { id: 'tracking', label: 'Route Tracker', icon: MapPin },
-    { id: 'completed', label: 'Completed Deliveries', icon: CheckCircle },
-    { id: 'support', label: 'Support', icon: HelpCircle },
+    { id: 'active-shipments', label: 'Active Shipments', icon: Truck },
+    { id: 'assigned-jobs', label: 'Assigned Jobs', icon: MapPin },
+    { id: 'sellers', label: 'Sellers', icon: ShoppingBag },
+    // { id: 'support', label: 'Support', icon: HelpCircle },
   ];
 
   return (
@@ -27,7 +27,7 @@ export function DriverNav({ activeTab, onTabChange }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-slate-900 rounded flex items-center justify-center">
+              <div className="w-10 h-10 bg-red-600 rounded flex items-center justify-center">
                 <span className="text-white font-bold text-sm">E</span>
               </div>
               <div>
@@ -37,9 +37,9 @@ export function DriverNav({ activeTab, onTabChange }) {
             </div>
 
             <div className="flex items-center gap-2 text-sm">
-              <div className="flex items-center gap-1 text-slate-600">
+            <div className="flex items-center gap-1 text-slate-600">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span>Status: On-Duty</span>
+                <span className="truncate italic text-sm">{user?.kycAddress || 'Address Not Verified'}</span>
               </div>
             </div>
 
@@ -53,7 +53,7 @@ export function DriverNav({ activeTab, onTabChange }) {
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-white text-sm font-bold hover:bg-green-700 transition"
+                  className="w-8 h-8 bg-slate-600 rounded-full flex items-center justify-center text-white text-sm font-bold hover:bg-slate-700 transition"
                 >
                   D
                 </button>
@@ -86,7 +86,7 @@ export function DriverNav({ activeTab, onTabChange }) {
                   onClick={() => onTabChange(id)}
                   className={`px-1 py-3 text-sm font-medium border-b-2 transition whitespace-nowrap flex items-center gap-2 ${
                     activeTab === id
-                      ? 'border-green-600 text-green-600'
+                      ? 'border-red-600 text-red-600'
                       : 'border-transparent text-slate-600 hover:text-slate-900'
                   }`}
                 >

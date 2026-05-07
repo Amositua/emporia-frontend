@@ -9,8 +9,15 @@ import { DriverOnboarding } from './pages/drivers/DriverOnboarding';
 import { SellerDashboard } from './pages/sellers/SellerDashboard';
 import { SellerProfile } from './pages/sellers/SellerProfile';
 import { SellerBuyerDetail } from './pages/sellers/SellerBuyerDetail';
+import { SellerDriverDetail } from './pages/sellers/SellerDriverDetail';
+import { SellerLogisticsPage } from './pages/sellers/SellerLogisticsPage';
 import { BuyerDashboard } from './pages/buyers/BuyerDashboard';
+import { BuyerSellersPage } from './pages/buyers/BuyerSellersPage';
+import { BuyerSellerDetail } from './pages/buyers/BuyerSellerDetail';
+import { BuyerLogisticsDetail } from './pages/buyers/BuyerLogisticsDetail';
 import { DriverDashboard } from './pages/drivers/DriverDashboard';
+import { DriverJobDetail } from './pages/drivers/DriverJobDetail';
+import { DriverSellerHistory } from './pages/drivers/DriverSellerHistory';
 import './index.css';
 
 const queryClient = new QueryClient();
@@ -50,6 +57,22 @@ function App() {
               }
             />
             <Route
+              path="/seller/drivers/detail"
+              element={
+                <ProtectedRoute requiredRole="SELLER">
+                  <SellerDriverDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/seller/logistics"
+              element={
+                <ProtectedRoute requiredRole="SELLER">
+                  <SellerLogisticsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/buyer/dashboard"
               element={
                 <ProtectedRoute requiredRole="BUYER">
@@ -58,10 +81,50 @@ function App() {
               }
             />
             <Route
+              path="/buyer/sellers"
+              element={
+                <ProtectedRoute requiredRole="BUYER">
+                  <BuyerSellersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/buyer/seller/detail"
+              element={
+                <ProtectedRoute requiredRole="BUYER">
+                  <BuyerSellerDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/buyer/logistics/detail"
+              element={
+                <ProtectedRoute requiredRole="BUYER">
+                  <BuyerLogisticsDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/driver/dashboard"
               element={
                 <ProtectedRoute requiredRole="DRIVER">
                   <DriverDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/driver/jobs/detail"
+              element={
+                <ProtectedRoute requiredRole="DRIVER">
+                  <DriverJobDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/driver/seller/history"
+              element={
+                <ProtectedRoute requiredRole="DRIVER">
+                  <DriverSellerHistory />
                 </ProtectedRoute>
               }
             />

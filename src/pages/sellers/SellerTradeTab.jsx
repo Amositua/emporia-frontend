@@ -68,14 +68,7 @@ export function SellerTradeTab() {
 
   return (
     <div>
-      {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-slate-900 mb-2">New Escrow Trade</h1>
-        <p className="text-slate-500">
-          Initiate a secure B2B transaction with guaranteed institutional-grade escrow protection.
-        </p>
-      </div>
-
+      {/* Form content starts here */}
       <form onSubmit={handleSubmit}>
         <div className="grid lg:grid-cols-[1fr_380px] gap-6 items-start">
           {/* LEFT — Form Sections */}

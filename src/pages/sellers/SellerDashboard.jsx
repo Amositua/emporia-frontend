@@ -7,12 +7,16 @@ import { BankAccountModal } from '../../components/BankAccountModal';
 import { SellerTradeTab } from './SellerTradeTab';
 import { SellerBuyersTab } from './SellerBuyersTab';
 import { SellerDriversTab } from './SellerDriversTab';
+import { SellerAssignGoodsTab } from './SellerAssignGoodsTab';
+import { SellerFlaggedTab } from './SellerFlaggedTab';
 import { useEffect } from 'react';
+import { useSellerTrades } from '../../hooks/useProfile';
 
 export function SellerDashboard() {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'overview');
   const [isBankModalOpen, setIsBankModalOpen] = useState(false);
+  const [hasBankInfo, setHasBankInfo] = useState(() => localStorage.getItem('emporia_bank_set') === 'true');
 
   useEffect(() => {
     // Show modal if bank details haven't been set in this browser
@@ -28,83 +32,74 @@ export function SellerDashboard() {
   const handleBankModalClose = () => {
     setIsBankModalOpen(false);
     localStorage.setItem('emporia_bank_set', 'true');
+    setHasBankInfo(true);
   };
+
+  const { data: tradesData, isLoading: tradesLoading } = useSellerTrades();
+  const recentTrades = tradesData?.dashboardRecords || [];
 
   const stats = [
     {
       icon: Truck,
       title: 'Pending Deliveries',
-      value: '8',
-      subtitle: '3 arriving today',
+      value: tradesData ? tradesData.dashboardRecords.filter(t => t.tradeStatus !== 'DELIVERED').length.toString() : '0',
+      subtitle: 'Active in-system trades',
       subtitleIcon: Clock,
     },
     {
       icon: DollarSign,
       title: 'Total Secured Volume',
-      value: '$2.4M',
-      subtitle: 'Historical total',
+      value: tradesData ? `$${(tradesData.dashboardRecords.reduce((acc, t) => acc + (t.amount || 0), 0)).toLocaleString()}` : '$0',
+      subtitle: 'Total contract value',
       subtitleIcon: TrendingUp,
     },
     {
       icon: CheckCircle,
       title: 'Completed Deliveries',
-      value: '0',
-      subtitle: 'First-time view',
+      value: tradesData ? tradesData.dashboardRecords.filter(t => t.tradeStatus === 'DELIVERED').length.toString() : '0',
+      subtitle: 'Successfully closed',
       subtitleIcon: null,
     },
   ];
 
-  const recentTrades = [
-    {
-      id: 1,
-      buyer: 'Acme Industries',
-      goods: 'Industrial Machinery',
-      amount: '$125,000',
-      status: 'Active',
-      statusColor: 'bg-blue-100 text-blue-800',
-    },
-    {
-      id: 2,
-      buyer: 'Global Tech Corp',
-      goods: 'Server Racks',
-      amount: '$85,500',
-      status: 'In Transit',
-      statusColor: 'bg-red-100 text-red-800',
-    },
-    {
-      id: 3,
-      buyer: 'Pan-African Builders',
-      goods: 'Raw Steel Ore',
-      amount: '$450,000',
-      status: 'Completed',
-      statusColor: 'bg-green-100 text-green-800',
-    },
-    {
-      id: 4,
-      buyer: 'Lagos Mercantile',
-      goods: 'Textile Shipment',
-      amount: '$32,000',
-      status: 'Active',
-      statusColor: 'bg-blue-100 text-blue-800',
-    },
-  ];
+
 
   return (
     <div className="min-h-screen bg-slate-50">
       <SellerNav activeTab={activeTab} onTabChange={setActiveTab} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-slate-900 mb-2">
+              {activeTab === 'overview' && 'Dashboard Overview'}
+              {activeTab === 'trade' && 'New Escrow Trade'}
+              {activeTab === 'buyers' && 'Buyer Directory'}
+              {activeTab === 'drivers' && 'Driver Directory'}
+              {activeTab === 'goods' && 'Assign Goods to Drivers'}
+              {activeTab !== 'overview' && activeTab !== 'trade' && activeTab !== 'buyers' && activeTab !== 'drivers' && activeTab !== 'goods' && activeTab.replace('-', ' ')}
+            </h1>
+            <p className="text-slate-600">
+              {activeTab === 'overview' && 'Institutional Seller Portal Overview'}
+              {activeTab === 'trade' && 'Initiate secure B2B transactions with escrow protection'}
+              {activeTab === 'buyers' && 'Manage institutional relationships and verified procurement partners'}
+              {activeTab === 'drivers' && 'Access our network of verified institutional logistics partners'}
+              {activeTab === 'goods' && 'Generate onboarding links for drivers to begin shipment protocols'}
+            </p>
+          </div>
+          {!hasBankInfo && (
+            <button
+              onClick={() => setIsBankModalOpen(true)}
+              className="flex items-center justify-center gap-2 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-all font-bold shadow-md hover:shadow-lg text-sm uppercase tracking-wider"
+            >
+              <DollarSign className="w-4 h-4" />
+              Submit Bank Info
+            </button>
+          )}
+        </div>
+
         {activeTab === 'overview' && (
           <>
-            <div className="mb-8">
-              <h1 className="text-4xl font-bold text-slate-900 mb-2">
-               Dashboard Overview
-              </h1>
-              <p className="text-slate-600">
-                Institutional Seller Dashboard Overview
-              </p>
-            </div>
-
             <div className="grid md:grid-cols-3 gap-6 mb-8">
               {stats.map((stat, idx) => (
                 <StatsCard key={idx} {...stat} />
@@ -142,29 +137,52 @@ export function SellerDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {recentTrades.map((trade) => (
-                      <tr
-                        key={trade.id}
-                        className="border-b border-slate-200 hover:bg-slate-50 transition"
-                      >
-                        <td className="py-4 px-4 text-slate-900 font-medium">
-                          {trade.buyer}
-                        </td>
-                        <td className="py-4 px-4 text-slate-700">
-                          {trade.goods}
-                        </td>
-                        <td className="py-4 px-4 text-slate-900 font-semibold">
-                          {trade.amount}
-                        </td>
-                        <td className="py-4 px-4">
-                          <span
-                            className={`px-3 py-1 rounded-full text-xs font-semibold ${trade.statusColor}`}
-                          >
-                            {trade.status}
-                          </span>
+                    {tradesLoading ? (
+                      <tr>
+                        <td colSpan="4" className="py-12 text-center">
+                          <div className="flex items-center justify-center gap-2 text-slate-500">
+                            <Clock className="w-5 h-5 animate-spin" />
+                            Loading your trades...
+                          </div>
                         </td>
                       </tr>
-                    ))}
+                    ) : recentTrades.length === 0 ? (
+                      <tr>
+                        <td colSpan="4" className="py-12 text-center text-slate-500">
+                          No trades found. Start by creating a new trade.
+                        </td>
+                      </tr>
+                    ) : (
+                      recentTrades.slice(0, 10).map((trade) => (
+                        <tr
+                          key={trade.tradeId}
+                          className="border-b border-slate-200 hover:bg-slate-50 transition"
+                        >
+                          <td className="py-4 px-4 text-slate-900 font-medium">
+                            {trade.buyerName || 'Awaiting Buyer'}
+                          </td>
+                          <td className="py-4 px-4 text-slate-700">
+                            {trade.goods}
+                          </td>
+                          <td className="py-4 px-4 text-slate-900 font-semibold">
+                            ${trade.amount?.toLocaleString()}
+                          </td>
+                          <td className="py-4 px-4">
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                trade.tradeStatus === 'DELIVERED' || trade.tradeStatus === 'COMPLETED' ? 'bg-green-100 text-green-800' : 
+                                trade.tradeStatus === 'FLAGGED' ? 'bg-red-100 text-red-800' :
+                                trade.tradeStatus === 'IN_TRANSIT' ? 'bg-orange-100 text-orange-800' :
+                                trade.tradeStatus === 'CREATED' || trade.tradeStatus === 'BUYER_JOINED' ? 'bg-blue-100 text-blue-800' :
+                                'bg-slate-100 text-slate-800'
+                              }`}
+                            >
+                              {trade.tradeStatus.replace(/_/g, ' ')}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -180,11 +198,19 @@ export function SellerDashboard() {
           <SellerBuyersTab />
         )}
 
-        {activeTab === 'goods' && (
+        {activeTab === 'drivers' && (
           <SellerDriversTab />
         )}
 
-        {activeTab !== 'overview' && activeTab !== 'trade' && activeTab !== 'buyers' && activeTab !== 'goods' && (
+        {activeTab === 'goods' && (
+          <SellerAssignGoodsTab />
+        )}
+
+        {activeTab === 'flagged' && (
+          <SellerFlaggedTab />
+        )}
+
+        {activeTab !== 'overview' && activeTab !== 'trade' && activeTab !== 'buyers' && activeTab !== 'drivers' && activeTab !== 'goods' && activeTab !== 'flagged' && (
           <div className="bg-white rounded-lg border border-slate-200 p-12 text-center">
             <p className="text-slate-600 text-lg">
               {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} section coming soon

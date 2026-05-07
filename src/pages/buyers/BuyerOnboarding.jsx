@@ -11,8 +11,9 @@ export function BuyerOnboarding() {
   const { login } = useAuth();
   const [formData, setFormData] = useState({
     phoneNumber: '',
-    countryCode: '+234',
+    // countryCode: '+234',
     inviteCode: '',
+    personalName: '',
   });
   const [error, setError] = useState('');
 
@@ -25,6 +26,10 @@ export function BuyerOnboarding() {
   };
 
   const validateForm = () => {
+    if (!formData.personalName.trim()) {
+      setError('Personal name is required');
+      return false;
+    }
     if (!formData.phoneNumber.trim()) {
       setError('Phone number is required');
       return false;
@@ -37,18 +42,19 @@ export function BuyerOnboarding() {
     if (!validateForm()) return;
 // console.log("form data: ", formData);
     try {
-      const fullPhone = `${formData.countryCode}${formData.phoneNumber}`;
+      // const fullPhone = `${formData.countryCode}${formData.phoneNumber}`;
 
       const result = await loginMutation.mutateAsync({
-        phoneNumber: fullPhone,
+        phoneNumber: formData.phoneNumber,
         inviteCode: formData.inviteCode ? `EMP-${formData.inviteCode}` : undefined,
+        personalName: formData.personalName,
       });
 
       console.log('result', result);
 
       login({ role: 'buyer', ...result });
 
-      setFormData({ phoneNumber: '', countryCode: '+234', inviteCode: '' });
+      setFormData({ phoneNumber: '', inviteCode: '', personalName: '' });
 
       navigate('/buyer/dashboard');
     } catch (err) {
@@ -89,6 +95,22 @@ export function BuyerOnboarding() {
               </p>
 
               <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    PERSONAL NAME
+                  </label>
+                  <input
+                    type="text"
+                    name="personalName"
+                    value={formData.personalName}
+                    onChange={handleInputChange}
+                    placeholder="Enter your full name"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition"
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
                     PHONE NUMBER

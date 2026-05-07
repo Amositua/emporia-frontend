@@ -31,15 +31,19 @@ export const sellerApi = {
     });
   },
 
-  async createTrade({ goodsType, quantity, amount, deliveryDate, deliveryTime }) {
+  async createTrade({ goodsType, quantity, amount, deliveryDate, deliveryTime, buyerPhoneNumber, buyerName }) {
     const stored = localStorage.getItem('emporia_user');
     const user = stored ? JSON.parse(stored) : null;
     const token = user?.token || user?.accessToken || user?.access_token;
 
+    const body = { goodsType, quantity, amount, deliveryDate, deliveryTime };
+    if (buyerPhoneNumber) body.buyerPhoneNumber = buyerPhoneNumber;
+    if (buyerName) body.buyerName = buyerName;
+
     return apiClient.request('/trade/create', {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: { goodsType, quantity, amount, deliveryDate, deliveryTime },
+      body,
     });
   },
 
@@ -64,12 +68,71 @@ export const sellerApi = {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
   },
+
+  async inviteDriver(tradeId) {
+    const stored = localStorage.getItem('emporia_user');
+    const user = stored ? JSON.parse(stored) : null;
+    const token = user?.token || user?.accessToken || user?.access_token;
+
+    return apiClient.request(`/trade/${tradeId}/driver-invite`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  },
+
+  async unassignDriver(tradeId) {
+    const stored = localStorage.getItem('emporia_user');
+    const user = stored ? JSON.parse(stored) : null;
+    const token = user?.token || user?.accessToken || user?.access_token;
+
+    return apiClient.request(`/trade/${tradeId}/unassign-driver`, {
+      method: 'PUT',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  },
+
+  async viewDispute(tradeId) {
+    const stored = localStorage.getItem('emporia_user');
+    const user = stored ? JSON.parse(stored) : null;
+    const token = user?.token || user?.accessToken || user?.access_token;
+
+    return apiClient.request(`/trade/${tradeId}/view-dispute`, {
+      method: 'GET',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  },
+
+  async editTrade(tradeId, data) {
+    const stored = localStorage.getItem('emporia_user');
+    const user = stored ? JSON.parse(stored) : null;
+    const token = user?.token || user?.accessToken || user?.access_token;
+
+    return apiClient.request(`/trade/${tradeId}/edit`, {
+      method: 'PUT',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: data,
+    });
+  },
+
+  async assignDriver(tradeId, driverPhoneNumber) {
+    const stored = localStorage.getItem('emporia_user');
+    const user = stored ? JSON.parse(stored) : null;
+    const token = user?.token || user?.accessToken || user?.access_token;
+
+    return apiClient.request(`/trade/${tradeId}/assign-driver`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: { driverPhoneNumber },
+    });
+  },
 };
 
 export const buyerApi = {
-  async login({ phoneNumber, inviteCode }) {
+  async login({ phoneNumber, inviteCode, personalName }) {
+    console.log({ phoneNumber, inviteCode, personalName })
     const body = { phoneNumber };
     if (inviteCode) body.inviteCode = inviteCode;
+    if (personalName) body.personalName = personalName;
     return apiClient.request('/auth/buyer/login', {
       method: 'POST',
       body,
@@ -86,13 +149,49 @@ export const buyerApi = {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
   },
+
+  async updateTradeAddress(tradeId, deliveryAddress) {
+    const stored = localStorage.getItem('emporia_user');
+    const user = stored ? JSON.parse(stored) : null;
+    const token = user?.token || user?.accessToken || user?.access_token;
+
+    return apiClient.request(`/trade/${tradeId}/address`, {
+      method: 'PUT',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: { deliveryAddress },
+    });
+  },
+
+  async flagTrade(tradeId, reason) {
+    const stored = localStorage.getItem('emporia_user');
+    const user = stored ? JSON.parse(stored) : null;
+    const token = user?.token || user?.accessToken || user?.access_token;
+
+    return apiClient.request(`/trade/${tradeId}/flag`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: { reason },
+    });
+  },
 };
 
 export const driverApi = {
   async login({ phoneNumber, businessName, linkCode }) {
+    console.log({ phoneNumber, businessName, linkCode })
     return apiClient.request('/auth/driver/login', {
       method: 'POST',
       body: { phoneNumber, businessName, linkCode },
+    });
+  },
+
+  async getDriverTrades() {
+    const stored = localStorage.getItem('emporia_user');
+    const user = stored ? JSON.parse(stored) : null;
+    const token = user?.token || user?.accessToken || user?.access_token;
+
+    return apiClient.request('/trade/driver/getTradeForDriver', {
+      method: 'GET',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
   },
 };

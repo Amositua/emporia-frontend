@@ -1,4 +1,4 @@
-import { ChartBar as BarChart3, Gem, Users, Package, MapPin, DollarSign, HelpCircle, Bell, Settings, LogOut, Flag } from 'lucide-react';
+import { ChartBar as BarChart3, Gem, Users, Package, MapPin, DollarSign, HelpCircle, Bell, Settings, LogOut, Flag, Truck } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -15,14 +15,29 @@ export function SellerNav({ activeTab, onTabChange }) {
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
+    { id: 'logistics', label: 'Logistics', icon: Truck },
     { id: 'trade', label: 'Trade with Buyer', icon: Gem },
     { id: 'buyers', label: 'Buyers', icon: Users },
-    { id: 'goods', label: 'Assign Goods to Drivers', icon: Package },
+    { id: 'goods', label: 'Assign Goods', icon: Package },
+    { id: 'drivers', label: 'Drivers', icon: Package },
     { id: 'tracking', label: 'Live Tracking', icon: MapPin },
     { id: 'financials', label: 'Financials', icon: DollarSign },
-    {id: 'flagged', label: 'Flagged Trades', icon: Flag },
-    { id: 'support', label: 'Support', icon: HelpCircle },
+    { id: 'flagged', label: 'Flagged', icon: Flag },
   ];
+
+  const handleTabClick = (id) => {
+    if (id === 'logistics') {
+      navigate('/seller/logistics');
+    } else {
+      if (onTabChange) {
+        onTabChange(id);
+      }
+      // Always navigate back to dashboard if we're on a different page
+      if (window.location.pathname !== '/seller/dashboard') {
+        navigate('/seller/dashboard', { state: { activeTab: id } });
+      }
+    }
+  };
 
   return (
     <>
@@ -33,7 +48,7 @@ export function SellerNav({ activeTab, onTabChange }) {
               onClick={() => navigate('/seller/dashboard')}
               className="flex items-center gap-4 hover:opacity-80 transition-opacity"
             >
-              <div className="w-10 h-10 bg-slate-900 rounded flex items-center justify-center">
+              <div className="w-10 h-10 bg-red-600 rounded flex items-center justify-center">
                 <span className="text-white font-bold text-sm">E</span>
               </div>
               <div className="text-left">
@@ -91,11 +106,11 @@ export function SellerNav({ activeTab, onTabChange }) {
 
         <div className="border-t border-slate-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex gap-8 overflow-x-auto">
+            <div className="flex gap-8 overflow-x-auto no-scrollbar">
               {tabs.map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
-                  onClick={() => onTabChange(id)}
+                  onClick={() => handleTabClick(id)}
                   className={`px-1 py-3 text-sm font-medium border-b-2 transition whitespace-nowrap flex items-center gap-2 ${
                     activeTab === id
                       ? 'border-red-600 text-red-600'

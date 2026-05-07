@@ -19,7 +19,7 @@ export function BuyerNav({ activeTab, onTabChange }) {
     { id: 'logistics', label: 'Logistics', icon: Truck },
     { id: 'live-tracking', label: 'Live Tracking', icon: Truck },
     { id: 'payment', label: 'Payment', icon: DollarSign },
-    { id: 'support', label: 'Support', icon: HelpCircle },
+    // { id: 'support', label: 'Support', icon: HelpCircle },
   ];
 
   return (
@@ -28,7 +28,7 @@ export function BuyerNav({ activeTab, onTabChange }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-slate-900 rounded flex items-center justify-center">
+              <div className="w-10 h-10 bg-red-600 rounded flex items-center justify-center">
                 <span className="text-white font-bold text-sm">E</span>
               </div>
               <div>
@@ -48,13 +48,13 @@ export function BuyerNav({ activeTab, onTabChange }) {
               <button className="p-2 hover:bg-slate-100 rounded-lg transition">
                 <Bell className="w-5 h-5 text-slate-700" />
               </button>
-              <button className="p-2 hover:bg-slate-100 rounded-lg transition">
+              {/* <button className="p-2 hover:bg-slate-100 rounded-lg transition">
                 <Settings className="w-5 h-5 text-slate-700" />
-              </button>
+              </button> */}
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold hover:bg-blue-700 transition"
+                  className="w-8 h-8 bg-slate-600 rounded-full flex items-center justify-center text-white text-sm font-bold hover:bg-slate-700 transition"
                 >
                   B
                 </button>
@@ -87,7 +87,7 @@ export function BuyerNav({ activeTab, onTabChange }) {
                   onClick={() => onTabChange(id)}
                   className={`px-1 py-3 text-sm font-medium border-b-2 transition whitespace-nowrap flex items-center gap-2 ${
                     activeTab === id
-                      ? 'border-blue-600 text-blue-600'
+                      ? 'border-red-600 text-red-600'
                       : 'border-transparent text-slate-600 hover:text-slate-900'
                   }`}
                 >

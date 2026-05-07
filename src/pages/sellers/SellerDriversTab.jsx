@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Search, SlidersHorizontal, Loader2, AlertCircle, Truck, ArrowRight, TrendingUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, SlidersHorizontal, Loader2, AlertCircle, Truck, ArrowRight, TrendingUp, ChevronRight } from 'lucide-react';
 import { useNetworkDrivers } from '../../hooks/useProfile';
 
 /* ── helpers ── */
@@ -31,124 +32,10 @@ function avatarColor(name = '') {
 /* ── constants ── */
 const PAGE_SIZE = 6;
 
-/* ── AssignGoodsModal ── */
-function AssignGoodsModal({ driver, onClose }) {
-  const [goodsType, setGoodsType] = useState('');
-  const [quantity, setQuantity]   = useState('');
-  const [notes, setNotes]         = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess]       = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    // Simulate async assignment — swap with real API call when ready
-    await new Promise((r) => setTimeout(r, 1000));
-    setSubmitting(false);
-    setSuccess(true);
-    setTimeout(onClose, 1500);
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-fade-in">
-        {/* Modal header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
-          <div>
-            <h3 className="text-lg font-bold text-slate-900">Assign Goods</h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Assigning to <span className="font-semibold text-slate-700">{driver.businessName}</span>
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition"
-          >
-            ✕
-          </button>
-        </div>
-
-        {success ? (
-          <div className="px-6 py-12 text-center">
-            <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-              <svg className="w-7 h-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <p className="font-semibold text-slate-800">Goods assigned successfully!</p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">
-                Goods Type
-              </label>
-              <input
-                type="text"
-                value={goodsType}
-                onChange={(e) => setGoodsType(e.target.value)}
-                required
-                placeholder="e.g. Industrial Machinery"
-                className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">
-                Quantity
-              </label>
-              <input
-                type="text"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                required
-                placeholder="e.g. 50 units"
-                className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">
-                Notes <span className="text-slate-400 normal-case font-normal">(optional)</span>
-              </label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={3}
-                placeholder="Any special handling instructions..."
-                className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition resize-none"
-              />
-            </div>
-
-            <div className="pt-1 flex gap-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 py-2.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-bold transition flex items-center justify-center gap-2 disabled:opacity-60"
-              >
-                {submitting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    Confirm <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
-    </div>
-  );
-}
 
 /* ── DriverCard ── */
-function DriverCard({ driver, onAssign }) {
+function DriverCard({ driver, onDetail }) {
   const color    = avatarColor(driver.businessName);
   const initials = getInitials(driver.businessName) || '??';
 
@@ -179,9 +66,12 @@ function DriverCard({ driver, onAssign }) {
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
             Phone
           </span>
-          <span className="text-xs font-semibold text-slate-700 font-mono">
+          <a 
+            href={`tel:${driver.phoneNumber}`}
+            className="text-xs font-semibold text-slate-700 font-mono hover:text-red-600 transition"
+          >
             {driver.phoneNumber}
-          </span>
+          </a>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -194,12 +84,11 @@ function DriverCard({ driver, onAssign }) {
       </div>
 
       <div className="border-t border-slate-100 pt-3 flex flex-col gap-2">
-        {/* Assign goods button */}
         <button
-          onClick={() => onAssign(driver)}
-          className="w-full py-2.5 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xs font-bold uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition"
+          onClick={() => onDetail(driver)}
+          className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition shadow-sm"
         >
-          ASSIGN GOODS <ArrowRight className="w-3.5 h-3.5" />
+          ASSIGN GOODS <ChevronRight className="w-3.5 h-3.5 text-red-500" />
         </button>
       </div>
     </div>
@@ -208,9 +97,9 @@ function DriverCard({ driver, onAssign }) {
 
 /* ── Main Tab ── */
 export function SellerDriversTab() {
+  const navigate = useNavigate();
   const [search, setSearch]         = useState('');
   const [page, setPage]             = useState(1);
-  const [assignTarget, setAssignTarget] = useState(null);
 
   const { data, isLoading, error } = useNetworkDrivers();
 
@@ -258,15 +147,6 @@ export function SellerDriversTab() {
 
   return (
     <>
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-slate-900 mb-1">Driver Directory</h1>
-        <p className="text-slate-500 text-sm max-w-xl">
-          Access our network of verified institutional logistics partners. All drivers undergo
-          rigorous protocol verification for secure B2B transport.
-        </p>
-      </div>
-
       {/* Stats cards */}
       <div className="grid sm:grid-cols-3 gap-4 mb-8">
         {[
@@ -346,7 +226,7 @@ export function SellerDriversTab() {
             <DriverCard
               key={driver.phoneNumber}
               driver={driver}
-              onAssign={setAssignTarget}
+              onDetail={(d) => navigate('/seller/drivers/detail', { state: d })}
             />
           ))}
         </div>
@@ -387,13 +267,6 @@ export function SellerDriversTab() {
         </div>
       )}
 
-      {/* Assign Goods Modal */}
-      {assignTarget && (
-        <AssignGoodsModal
-          driver={assignTarget}
-          onClose={() => setAssignTarget(null)}
-        />
-      )}
     </>
   );
 }

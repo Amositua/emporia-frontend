@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   ShoppingCart,
   Users,
@@ -8,13 +9,14 @@ import {
   Search,
   SlidersHorizontal,
   TrendingUp,
-  ChevronLeft,
-  ChevronRight,
   Eye,
+  MapPin,
+  X,
 } from 'lucide-react';
 import { BuyerNav } from '../../components/BuyerNav';
 import { useAuth } from '../../context/AuthContext';
-import { useBuyerTrades } from '../../hooks/useProfile';
+import { useBuyerTrades, useUpdateTradeAddress } from '../../hooks/useProfile';
+import { BuyerLogisticsTab } from './BuyerLogisticsTab';
 
 /* ── helpers ── */
 function formatAmount(val) {
@@ -32,13 +34,17 @@ function formatDate(dateStr) {
 }
 
 const STATUS_STYLES = {
-  ACTIVE:       'bg-blue-100 text-blue-700',
-  BUYER_JOINED: 'bg-indigo-100 text-indigo-700',
-  IN_TRANSIT:   'bg-amber-100 text-amber-700',
-  DELIVERED:    'bg-green-100 text-green-700',
-  COMPLETED:    'bg-green-100 text-green-700',
-  CANCELLED:    'bg-red-100 text-red-700',
-  PENDING:      'bg-slate-100 text-slate-600',
+  CREATED:         'bg-amber-100 text-amber-700',
+  BUYER_JOINED:    'bg-indigo-100 text-indigo-700',
+  DRIVER_PENDING:  'bg-purple-100 text-purple-700',
+  DRIVER_ASSIGNED: 'bg-cyan-100 text-cyan-700',
+  ACTIVE:          'bg-blue-100 text-blue-700',
+  IN_TRANSIT:      'bg-orange-100 text-orange-700',
+  DELIVERED:       'bg-green-100 text-green-700',
+  COMPLETED:       'bg-green-100 text-green-700',
+  CANCELLED:       'bg-red-100 text-red-700',
+  PENDING:         'bg-slate-100 text-slate-600',
+  FLAGGED:         'bg-red-200 text-red-800',
 };
 
 function statusLabel(status = '') {
@@ -46,230 +52,6 @@ function statusLabel(status = '') {
 }
 
 const PAGE_SIZE = 8;
-const SELLERS_PAGE_SIZE = 8;
-
-/* ── derive initials from name ── */
-function getInitials(name = '') {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join('');
-}
-
-/* ── Sellers Directory ── */
-function BuyerSellerDirectory({ records, isLoading, error }) {
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-
-  /* group by sellerName */
-  const sellerRows = useMemo(() => {
-    const map = new Map();
-    records.forEach((trade) => {
-      const key = trade.sellerName;
-      if (!map.has(key)) {
-        map.set(key, {
-          sellerName: trade.sellerName,
-          sellerPhone: trade.sellerPhone,
-          trades: [],
-        });
-      }
-      map.get(key).trades.push(trade);
-    });
-
-    return Array.from(map.values()).map(({ sellerName, sellerPhone, trades }) => {
-      const totalTrades = trades.length;
-      const totalAmount = trades.reduce((s, t) => s + (t.totalAmount ?? t.amount ?? 0), 0);
-
-      /* last delivery: DELIVERED trades sorted descending by date, pick the closest */
-      const deliveredTrades = trades
-        .filter((t) => t.tradeStatus === 'DELIVERED')
-        .sort((a, b) => new Date(b.deliveryDate) - new Date(a.deliveryDate));
-      const lastDelivery = deliveredTrades.length > 0 ? deliveredTrades[0].deliveryDate : null;
-
-      return { sellerName, sellerPhone, totalTrades, totalAmount, lastDelivery };
-    });
-  }, [records]);
-
-  /* search filter */
-  const filtered = useMemo(() => {
-    if (!search.trim()) return sellerRows;
-    const q = search.toLowerCase();
-    return sellerRows.filter((r) => r.sellerName?.toLowerCase().includes(q));
-  }, [sellerRows, search]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / SELLERS_PAGE_SIZE));
-  const paginated = filtered.slice((page - 1) * SELLERS_PAGE_SIZE, page * SELLERS_PAGE_SIZE);
-
-  const handleSearch = (e) => {
-    setSearch(e.target.value);
-    setPage(1);
-  };
-
-  return (
-    <div>
-      {/* Page header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 mb-1">Sellers Directory</h1>
-        <p className="text-sm text-slate-500">
-          Manage and discover verified institutional partners within the EscrowPay ecosystem. All
-          sellers listed have passed rigorous institutional compliance and background checks.
-        </p>
-      </div>
-
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-        {/* Search bar */}
-        <div className="px-6 py-4 border-b border-slate-100">
-          <div className="relative max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={handleSearch}
-              placeholder="Search by seller name..."
-              className="w-full pl-10 pr-4 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-            />
-          </div>
-        </div>
-
-        {/* Loading */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-7 h-7 text-blue-600 animate-spin" />
-          </div>
-        )}
-
-        {/* Error */}
-        {error && !isLoading && (
-          <div className="flex items-center gap-3 m-6 p-4 bg-red-50 border border-red-100 rounded-xl text-red-600">
-            <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <p className="text-sm font-medium">Failed to load seller records. Please refresh.</p>
-          </div>
-        )}
-
-        {/* Table */}
-        {!isLoading && !error && (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-100">
-                  {['SELLER NAME', 'TOTAL TRADES', 'TOTAL AMOUNT', 'LAST DELIVERY', 'ACTIONS'].map((col) => (
-                    <th
-                      key={col}
-                      className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap"
-                    >
-                      {col}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {paginated.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-16 text-center text-slate-400 text-sm">
-                      {search ? 'No sellers match your search.' : 'No sellers found.'}
-                    </td>
-                  </tr>
-                ) : (
-                  paginated.map((row) => (
-                    <tr
-                      key={row.sellerName}
-                      className="border-b border-slate-100 hover:bg-slate-50/60 transition"
-                    >
-                      {/* Seller Name with avatar */}
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
-                            <span className="text-xs font-bold text-slate-600">
-                              {getInitials(row.sellerName)}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="font-semibold text-slate-900 text-sm">{row.sellerName}</p>
-                            <p className="text-xs text-slate-400 font-mono">{row.sellerPhone}</p>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Total Trades */}
-                      <td className="py-4 px-6 text-sm font-semibold text-slate-900">
-                        {row.totalTrades.toLocaleString()}
-                      </td>
-
-                      {/* Total Amount */}
-                      <td className="py-4 px-6">
-                        <span className="font-semibold text-slate-900 text-sm font-mono">
-                          {formatAmount(row.totalAmount)}
-                        </span>
-                      </td>
-
-                      {/* Last Delivery */}
-                      <td className="py-4 px-6 text-sm text-slate-600 whitespace-nowrap">
-                        {row.lastDelivery ? formatDate(row.lastDelivery) : <span className="text-slate-400">—</span>}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="py-4 px-6">
-                        <button
-                          className="flex items-center gap-1.5 text-sm font-semibold text-red-600 hover:text-red-700 transition"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          View Details
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Footer / Pagination */}
-        {!isLoading && !error && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100">
-            <p className="text-xs text-slate-500">
-              Showing {paginated.length} of {filtered.length} seller{filtered.length !== 1 ? 's' : ''}
-            </p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                const p = i + 1;
-                return (
-                  <button
-                    key={p}
-                    onClick={() => setPage(p)}
-                    className={`w-8 h-8 rounded-lg text-xs font-semibold transition ${
-                      page === p
-                        ? 'bg-red-600 text-white border border-red-600'
-                        : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    {p}
-                  </button>
-                );
-              })}
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 /* ── Stat Card ── */
 function StatCard({ icon: Icon, label, value, sub, subGreen }) {
@@ -291,14 +73,78 @@ function StatCard({ icon: Icon, label, value, sub, subGreen }) {
   );
 }
 
+/* ── Address Modal ── */
+function AddressModal({ trade, onClose, onSave, isPending }) {
+  const [address, setAddress] = useState(trade?.deliveryAddress || '');
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-[2px] p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h3 className="font-bold text-slate-900 text-sm">Delivery Address</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        
+        <div className="p-5 space-y-4">
+          <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Trade ID</p>
+            <p className="text-xs font-mono font-bold text-slate-700">#{trade?.tradeId?.toUpperCase()}</p>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Address Details</label>
+            <textarea
+              autoFocus
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="e.g. 123 Industrial Way, Accra..."
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition min-h-[80px] resize-none"
+            />
+          </div>
+        </div>
+
+        <div className="px-5 py-4 flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2 text-xs font-bold text-slate-500 uppercase tracking-widest hover:bg-slate-50 rounded transition"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onSave(address)}
+            disabled={isPending || !address.trim()}
+            className="flex-1 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white py-2 rounded text-xs font-bold uppercase tracking-widest transition flex items-center justify-center gap-2"
+          >
+            {isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Save Address'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Main Dashboard ── */
 export function BuyerDashboard() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'overview');
   const [search, setSearch]       = useState('');
   const [page, setPage]           = useState(1);
+  const [selectedTrade, setSelectedTrade] = useState(null);
+
+  const handleTabChange = (tabId) => {
+    if (tabId === 'sellers') {
+      navigate('/buyer/sellers');
+    } else {
+      setActiveTab(tabId);
+    }
+  };
 
   const { user } = useAuth();
-  const { data, isLoading, error } = useBuyerTrades();
+  const { data, isLoading, error, refetch } = useBuyerTrades();
+  const updateAddressMutation = useUpdateTradeAddress();
   console.log("iis", data);
   const records      = data?.dashboardRecords ?? [];
   const totalTrades  = data?.totalTrades ?? 0;
@@ -332,7 +178,7 @@ export function BuyerDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <BuyerNav activeTab={activeTab} onTabChange={setActiveTab} />
+      <BuyerNav activeTab={activeTab} onTabChange={handleTabChange} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
@@ -431,10 +277,10 @@ export function BuyerDashboard() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-slate-100">
-                        {['SELLER NAME', 'TRADE ID', 'GOODS', 'AMOUNT', 'DELIVERY DATE', 'PROTOCOL STATUS'].map((col) => (
+                        {['SELLER NAME', 'TRADE ID', 'GOODS', 'AMOUNT', 'DELIVERY INFO', 'STATUS', 'ACTIONS'].map((col) => (
                           <th
                             key={col}
-                            className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap"
+                            className={`py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap ${col === 'ACTIONS' ? 'text-right' : 'text-left'}`}
                           >
                             {col}
                           </th>
@@ -479,9 +325,20 @@ export function BuyerDashboard() {
                               </span>
                             </td>
 
-                            {/* Delivery Date */}
-                            <td className="py-4 px-6 text-sm text-slate-600 whitespace-nowrap">
-                              {formatDate(trade.deliveryDate)}
+                            {/* Delivery Date & Address */}
+                            <td className="py-4 px-6">
+                              <div className="flex flex-col gap-1">
+                                <span className="text-sm text-slate-600 font-medium whitespace-nowrap">
+                                  {formatDate(trade.deliveryDate)}
+                                </span>
+                                {trade.deliveryAddress ? (
+                                  <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
+                                    <MapPin className="w-2.5 h-2.5" /> {trade.deliveryAddress}
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-red-400 italic">No address set</span>
+                                )}
+                              </div>
                             </td>
 
                             {/* Status */}
@@ -493,6 +350,17 @@ export function BuyerDashboard() {
                               >
                                 {statusLabel(trade.tradeStatus)}
                               </span>
+                            </td>
+
+                            {/* Actions */}
+                            <td className="py-4 px-6 text-right">
+                              <button 
+                                onClick={() => setSelectedTrade(trade)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-bold uppercase tracking-widest rounded transition shadow-sm"
+                              >
+                                <MapPin className="w-3 h-3" />
+                                {trade.deliveryAddress ? 'Edit Address' : 'Add Address'}
+                              </button>
                             </td>
                           </tr>
                         ))
@@ -530,13 +398,15 @@ export function BuyerDashboard() {
           </>
         )}
 
-        {/* ── Sellers tab ── */}
-        {activeTab === 'sellers' && (
-          <BuyerSellerDirectory records={records} isLoading={isLoading} error={error} />
+
+
+        {/* ── Logistics tab ── */}
+        {activeTab === 'logistics' && (
+          <BuyerLogisticsTab />
         )}
 
         {/* ── Other tabs ── */}
-        {activeTab !== 'overview' && activeTab !== 'sellers' && (
+        {activeTab !== 'overview' && activeTab !== 'sellers' && activeTab !== 'logistics' && (
           <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
             <p className="text-slate-500 text-base">
               {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} section coming soon
@@ -551,6 +421,28 @@ export function BuyerDashboard() {
           © 2024 EscrowProtocol. All Institutional Rights Reserved.
         </p>
       </footer>
+
+      {/* Address Modal */}
+      {selectedTrade && (
+        <AddressModal
+          trade={selectedTrade}
+          isPending={updateAddressMutation.isPending}
+          onClose={() => setSelectedTrade(null)}
+          onSave={async (newAddr) => {
+            try {
+              await updateAddressMutation.mutateAsync({ 
+                tradeId: selectedTrade.tradeId, 
+                deliveryAddress: newAddr 
+              });
+              await refetch();
+              setSelectedTrade(null);
+            } catch (err) {
+              console.error('Update address failed:', err);
+              alert(`Failed to update address: ${err.message}`);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

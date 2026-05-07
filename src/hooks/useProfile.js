@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { sellerApi, buyerApi, driverApi } from '../lib/api';
 
 export function useSellerLogin() {
@@ -40,6 +40,44 @@ export function useNetworkDrivers() {
   });
 }
 
+export function useViewDispute() {
+  return useMutation({
+    mutationFn: (tradeId) => sellerApi.viewDispute(tradeId),
+  });
+}
+
+export function useEditTrade() {
+  return useMutation({
+    mutationFn: ({ tradeId, data }) => sellerApi.editTrade(tradeId, data),
+  });
+}
+
+export function useInviteDriver() {
+  return useMutation({
+    mutationFn: (tradeId) => sellerApi.inviteDriver(tradeId),
+  });
+}
+
+export function useUnassignDriver() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (tradeId) => sellerApi.unassignDriver(tradeId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sellerTrades'] });
+    },
+  });
+}
+
+export function useAssignDriver() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tradeId, driverPhoneNumber }) => sellerApi.assignDriver(tradeId, driverPhoneNumber),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sellerTrades'] });
+    },
+  });
+}
+
 export function useBuyerLogin() {
   return useMutation({
     mutationFn: buyerApi.login,
@@ -53,8 +91,27 @@ export function useBuyerTrades() {
   });
 }
 
+export function useUpdateTradeAddress() {
+  return useMutation({
+    mutationFn: ({ tradeId, deliveryAddress }) => buyerApi.updateTradeAddress(tradeId, deliveryAddress),
+  });
+}
+
+export function useFlagTrade() {
+  return useMutation({
+    mutationFn: ({ tradeId, reason }) => buyerApi.flagTrade(tradeId, reason),
+  });
+}
+
 export function useDriverLogin() {
   return useMutation({
     mutationFn: driverApi.login,
+  });
+}
+
+export function useDriverTrades() {
+  return useQuery({
+    queryKey: ['driverTrades'],
+    queryFn: driverApi.getDriverTrades,
   });
 }

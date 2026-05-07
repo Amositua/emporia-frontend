@@ -93,15 +93,8 @@ export function SellerBuyersTab() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-4xl font-bold text-slate-900 mb-1">Buyer Directory</h1>
-          <p className="text-slate-500 text-sm">
-            Manage institutional relationships and verified procurement partners.
-          </p>
-        </div>
-
+      {/* Header with Search only */}
+      <div className="flex justify-end mb-6">
         {/* Search */}
         <div className="flex-shrink-0">
           <div className="relative">
@@ -111,7 +104,7 @@ export function SellerBuyersTab() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search buyers by name..."
-              className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition w-56"
+              className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition w-64 shadow-sm"
             />
           </div>
         </div>
