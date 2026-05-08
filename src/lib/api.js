@@ -173,6 +173,29 @@ export const buyerApi = {
       body: { reason },
     });
   },
+
+  async initializePayment(tradeId, data) {
+    const stored = localStorage.getItem('emporia_user');
+    const user = stored ? JSON.parse(stored) : null;
+    const token = user?.token || user?.accessToken || user?.access_token;
+
+    return apiClient.request(`/payment/initialize/${tradeId}`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: data,
+    });
+  },
+
+  async verifyPayment(tradeId, trxref) {
+    const stored = localStorage.getItem('emporia_user');
+    const user = stored ? JSON.parse(stored) : null;
+    const token = user?.token || user?.accessToken || user?.access_token;
+
+    return apiClient.request(`/payment/verify/${tradeId}/${trxref}`, {
+      method: 'GET',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  },
 };
 
 export const driverApi = {

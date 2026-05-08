@@ -190,7 +190,7 @@ export function BuyerDashboard() {
               <p className="text-sm font-medium text-slate-500 mb-1">
                 Welcome back,{' '}
                 <span className="font-semibold text-slate-700">
-                  {user?.businessName || user?.phoneNumber || 'Buyer'}
+                  {user?.personalName || user?.per || 'Buyer'}
                 </span>
               </p>
               <h1 className="text-4xl font-bold text-slate-900 mb-2">Purchase Management</h1>
@@ -207,10 +207,10 @@ export function BuyerDashboard() {
                     Active Purchase
                   </p>
                   <p className="text-3xl font-bold text-slate-900 mb-1">{activeTrades.length}</p>
-                  <p className="text-xs font-medium text-blue-600 flex items-center gap-1">
+                  {/* <p className="text-xs font-medium text-blue-600 flex items-center gap-1">
                     <TrendingUp className="w-3 h-3" />
                     +{activeTrades.length} since last month
-                  </p>
+                  </p> */}
                 </div>
                 <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
                   <ShoppingCart className="w-5 h-5 text-slate-500" />
@@ -329,11 +329,12 @@ export function BuyerDashboard() {
                             <td className="py-4 px-6">
                               <div className="flex flex-col gap-1">
                                 <span className="text-sm text-slate-600 font-medium whitespace-nowrap">
-                                  {formatDate(trade.deliveryDate)}
+                                  {formatDate(trade.deliveryDate)} - {trade.deliveryTime}
                                 </span>
                                 {trade.deliveryAddress ? (
                                   <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
                                     <MapPin className="w-2.5 h-2.5" /> {trade.deliveryAddress}
+                                    
                                   </span>
                                 ) : (
                                   <span className="text-[10px] text-red-400 italic">No address set</span>
@@ -359,7 +360,7 @@ export function BuyerDashboard() {
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-bold uppercase tracking-widest rounded transition shadow-sm"
                               >
                                 <MapPin className="w-3 h-3" />
-                                {trade.deliveryAddress ? 'Edit Address' : 'Add Address'}
+                                {trade.deliveryAddress ? 'Edit Delivery Address' : 'Add Delivery Address'}
                               </button>
                             </td>
                           </tr>
@@ -418,7 +419,7 @@ export function BuyerDashboard() {
       {/* Footer */}
       <footer className="border-t border-slate-200 mt-16 py-6 text-center">
         <p className="text-xs text-slate-400 uppercase tracking-widest font-medium">
-          © 2024 EscrowProtocol. All Institutional Rights Reserved.
+          © 2026 EscrowProtocol. All Institutional Rights Reserved.
         </p>
       </footer>
 

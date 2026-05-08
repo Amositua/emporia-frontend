@@ -15,6 +15,7 @@ import { BuyerDashboard } from './pages/buyers/BuyerDashboard';
 import { BuyerSellersPage } from './pages/buyers/BuyerSellersPage';
 import { BuyerSellerDetail } from './pages/buyers/BuyerSellerDetail';
 import { BuyerLogisticsDetail } from './pages/buyers/BuyerLogisticsDetail';
+import { PaymentSuccessPage } from './pages/buyers/PaymentSuccessPage';
 import { DriverDashboard } from './pages/drivers/DriverDashboard';
 import { DriverJobDetail } from './pages/drivers/DriverJobDetail';
 import { DriverSellerHistory } from './pages/drivers/DriverSellerHistory';
@@ -101,6 +102,14 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="BUYER">
                   <BuyerLogisticsDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payment/success"
+              element={
+                <ProtectedRoute requiredRole="BUYER">
+                  <PaymentSuccessPage />
                 </ProtectedRoute>
               }
             />

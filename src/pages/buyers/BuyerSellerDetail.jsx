@@ -249,7 +249,7 @@ export function BuyerSellerDetail() {
       {/* Footer */}
       <footer className="border-t border-slate-200 mt-16 py-6 text-center">
         <p className="text-xs text-slate-400 uppercase tracking-widest font-medium">
-          © 2024 EscrowProtocol. All Institutional Rights Reserved.
+          © 2026 EscrowProtocol. All Institutional Rights Reserved.
         </p>
       </footer>
     </div>

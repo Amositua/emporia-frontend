@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 export function BuyerNav({ activeTab, onTabChange }) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   const handleLogout = () => {
     logout();
@@ -15,8 +15,8 @@ export function BuyerNav({ activeTab, onTabChange }) {
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
-    { id: 'sellers', label: 'Sellers', icon: ShoppingBag },
     { id: 'logistics', label: 'Logistics', icon: Truck },
+    { id: 'sellers', label: 'Sellers', icon: ShoppingBag },
     { id: 'live-tracking', label: 'Live Tracking', icon: Truck },
     { id: 'payment', label: 'Payment', icon: DollarSign },
     // { id: 'support', label: 'Support', icon: HelpCircle },
@@ -33,7 +33,7 @@ export function BuyerNav({ activeTab, onTabChange }) {
               </div>
               <div>
                 <p className="font-bold text-slate-900">Emporia Buyer</p>
-                <p className="text-xs text-slate-500">Secure Procurement</p>
+                <p className="text-xs text-slate-500">{user?.personalName}</p>
               </div>
             </div>
 

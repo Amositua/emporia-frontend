@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Search, 
   Calendar, 
@@ -15,7 +15,8 @@ import {
   Flag,
   X
 } from 'lucide-react';
-import { useBuyerTrades, useFlagTrade } from '../../hooks/useProfile';
+import { useBuyerTrades, useFlagTrade, useInitializePayment, useVerifyPayment } from '../../hooks/useProfile';
+import { useAuth } from '../../context/AuthContext';
 
 /* ── helpers ── */
 function formatTime(timeStr) {
@@ -125,12 +126,55 @@ function FlagModal({ trade, onClose, onConfirm, isPending }) {
 
 export function BuyerLogisticsTab() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data, isLoading, error, refetch } = useBuyerTrades();
   const flagTradeMutation = useFlagTrade();
+  const paymentMutation = useInitializePayment();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [selectedTrade, setSelectedTrade] = useState(null);
   const PAGE_SIZE = 10;
+
+  const handlePayNow = async (trade) => {
+    try {
+      // Store tradeId locally so the callback URL stays clean
+      localStorage.setItem('emporia_pending_trade', trade.tradeId);
+      
+      const callbackUrl = `https://emporia-frontend.vercel.app/payment/success`;
+      const data = {
+        email: user?.email || `${user?.phoneNumber}@emporia.com`,
+        callbackUrl
+      };
+      const response = await paymentMutation.mutateAsync({ tradeId: trade.tradeId, data });
+      if (response.authorization_url) {
+        window.open(response.authorization_url, '_blank');
+      }
+    } catch (err) {
+      console.error('Payment initialization failed:', err);
+    }
+  };
+
+  const { search: urlSearch } = useLocation();
+  const verifyMutation = useVerifyPayment();
+
+  useEffect(() => {
+    const queryParams = new URLSearchParams(urlSearch);
+    const trxref = queryParams.get('trxref');
+    const urlTradeId = queryParams.get('tradeId');
+    
+    if (trxref && urlTradeId) {
+      const handleVerify = async () => {
+        try {
+          await verifyMutation.mutateAsync({ tradeId: urlTradeId, trxref });
+          refetch();
+          navigate('/buyer/dashboard', { replace: true });
+        } catch (err) {
+          console.error('Payment verification failed:', err);
+        }
+      };
+      handleVerify();
+    }
+  }, [urlSearch]);
 
   const records = useMemo(() => data?.dashboardRecords ?? [], [data]);
 
@@ -178,21 +222,21 @@ export function BuyerLogisticsTab() {
         <StatCard 
           label="Total Shipments" 
           value={totalShipments} 
-          sub="+12% this month" 
+          sub="" 
           icon={Truck} 
           borderColor="border-l-slate-900" 
         />
         <StatCard 
           label="In Transit" 
           value={inTransitCount} 
-          sub="Expected delivery within 48h" 
+          sub="" 
           icon={RotateCcw} 
           borderColor="border-l-blue-500" 
         />
         <StatCard 
-          label="Completed" 
+          label="Delivered" 
           value={completedCount} 
-          sub="Successfully escrow-released" 
+          sub="" 
           icon={ShieldCheck} 
           borderColor="border-l-red-500" 
         />
@@ -236,6 +280,7 @@ export function BuyerLogisticsTab() {
                 <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Goods</th>
                 <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Driver</th>
                 <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Payment</th>
                 <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">ETA</th>
                 <th className="py-4 px-6" />
               </tr>
@@ -257,16 +302,25 @@ export function BuyerLogisticsTab() {
                         {trade.tradeStatus.replace(/_/g, ' ')}
                       </span>
                     </td>
+                    <td className="py-4 px-6">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${trade.paymentStatus === 'ESCROW_FUNDED' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                        {trade.paymentStatus === 'ESCROW_FUNDED' ? 'Escrow Funded' : 'Escrow Not Funded'}
+                      </span>
+                    </td>
                     <td className="py-4 px-6 text-sm text-slate-500 whitespace-nowrap font-medium">
                       {trade.deliveryDate ? formatDate(trade.deliveryDate) : 'Oct 24'}, {trade.deliveryTime ? formatTime(trade.deliveryTime) : '14:00'}
                     </td>
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-3">
                         <button 
-                          className="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded text-[10px] font-bold uppercase tracking-widest shadow-sm transition"
-                          onClick={(e) => { e.stopPropagation(); /* Payment logic here */ }}
+                          disabled={(paymentMutation.isPending && paymentMutation.variables?.tradeId === trade.tradeId) || trade.paymentStatus === 'ESCROW_FUNDED'}
+                          className="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded text-[10px] font-bold uppercase tracking-widest shadow-sm transition disabled:opacity-50 disabled:bg-slate-100 disabled:text-slate-400"
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            handlePayNow(trade);
+                          }}
                         >
-                          PAY NOW
+                          {trade.paymentStatus === 'ESCROW_FUNDED' ? 'FUNDED' : (paymentMutation.isPending && paymentMutation.variables?.tradeId === trade.tradeId ? 'Processing...' : 'PAY NOW')}
                         </button>
                         <button 
                           onClick={() => navigate('/buyer/logistics/detail', { state: trade })}

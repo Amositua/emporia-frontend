@@ -103,6 +103,18 @@ export function useFlagTrade() {
   });
 }
 
+export function useInitializePayment() {
+  return useMutation({
+    mutationFn: ({ tradeId, data }) => buyerApi.initializePayment(tradeId, data),
+  });
+}
+
+export function useVerifyPayment() {
+  return useMutation({
+    mutationFn: ({ tradeId, trxref }) => buyerApi.verifyPayment(tradeId, trxref),
+  });
+}
+
 export function useDriverLogin() {
   return useMutation({
     mutationFn: driverApi.login,
