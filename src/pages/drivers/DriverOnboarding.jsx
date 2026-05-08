@@ -153,7 +153,7 @@ export function DriverOnboarding() {
                   <span className="absolute left-4 top-3.5 text-slate-400 font-semibold">
                       DRV-
                     </span>
-                  <input
+                  <input 
                     type="text"
                     name="linkCode"
                     value={formData.linkCode}
