@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useDriverLogin } from '../../hooks/useProfile';
 import { Lock, Circle as HelpCircle, Shield, ArrowLeft } from 'lucide-react';
@@ -17,6 +17,22 @@ export function DriverOnboarding() {
   const [error, setError] = useState('');
 
   const loginMutation = useDriverLogin();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const codeParam = searchParams.get('code');
+    if (codeParam) {
+      // Strip 'DRV-' if present, as the input field already includes it visually
+      const code = codeParam.startsWith('DRV-') 
+        ? codeParam.substring(4) 
+        : codeParam;
+      
+      setFormData(prev => ({
+        ...prev,
+        linkCode: code
+      }));
+    }
+  }, [searchParams]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
