@@ -114,6 +114,17 @@ export const sellerApi = {
     });
   },
 
+  async inviteBuyer(tradeId) {
+    const stored = localStorage.getItem('emporia_user');
+    const user = stored ? JSON.parse(stored) : null;
+    const token = user?.token || user?.accessToken || user?.access_token;
+
+    return apiClient.request(`/trade/${tradeId}/buyer-invite`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  },
+
   async assignDriver(tradeId, driverPhoneNumber) {
     const stored = localStorage.getItem('emporia_user');
     const user = stored ? JSON.parse(stored) : null;

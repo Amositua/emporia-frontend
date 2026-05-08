@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useBuyerLogin } from '../../hooks/useProfile';
 import { Lock, Circle as HelpCircle, Shield, ArrowLeft } from 'lucide-react';
@@ -18,6 +18,22 @@ export function BuyerOnboarding() {
   const [error, setError] = useState('');
 
   const loginMutation = useBuyerLogin();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const inviteParam = searchParams.get('invite');
+    if (inviteParam) {
+      // Strip 'EMP-' if present, as the input field already includes it visually
+      const code = inviteParam.startsWith('EMP-') 
+        ? inviteParam.substring(4) 
+        : inviteParam;
+      
+      setFormData(prev => ({
+        ...prev,
+        inviteCode: code
+      }));
+    }
+  }, [searchParams]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader2, X } from 'lucide-react';
 import { useVerifyPayment } from '../../hooks/useProfile';
@@ -7,31 +7,48 @@ export function PaymentSuccessPage() {
   const { search } = useLocation();
   const verifyMutation = useVerifyPayment();
   const [status, setStatus] = useState('verifying'); // verifying, success, error
+  const hasCalled = useRef(false);
 
   useEffect(() => {
+    // Lock the effect so it only runs once and only while verifying
+    if (status !== 'verifying' || hasCalled.current) return;
+
     const params = new URLSearchParams(search);
     const trxref = params.get('trxref');
-    // Get tradeId from URL or fallback to localStorage
     const tradeId = params.get('tradeId') || localStorage.getItem('emporia_pending_trade');
 
     if (trxref && tradeId) {
-      verifyMutation.mutate({ tradeId, trxref }, {
-        onSuccess: (data) => {
-          console.log("data", data)
-          // Explicitly check for the success status from your backend
-          if (data.paymentStatus === 'ESCROW_FUNDED') {
+      hasCalled.current = true;
+      
+      const performVerification = async () => {
+        try {
+          console.log("Diagnostic - Initiating verification for:", { tradeId, trxref });
+          const data = await verifyMutation.mutateAsync({ tradeId, trxref });
+          console.log("Diagnostic - Server Response:", data);
+          
+          const isFunded = data.paymentStatus === 'ESCROW_FUNDED' || 
+                          data.message?.toLowerCase().includes('funded') ||
+                          data.message?.toLowerCase().includes('success');
+
+          if (isFunded) {
             setStatus('success');
             localStorage.removeItem('emporia_pending_trade');
           } else {
+            console.warn("Status Mismatch - Response received but not funded:", data);
             setStatus('error');
           }
-        },
-        onError: () => setStatus('error')
-      });
-    } else {
+        } catch (err) {
+          console.error("Diagnostic - Verification Fatal Error:", err);
+          setStatus('error');
+        }
+      };
+
+      performVerification();
+    } else if (trxref || tradeId) {
+      console.error("Diagnostic - Missing parameters:", { trxref, tradeId });
       setStatus('error');
     }
-  }, [search, verifyMutation]);
+  }, [search, status, verifyMutation]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">

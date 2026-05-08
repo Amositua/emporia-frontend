@@ -86,7 +86,7 @@ function DriverCard({ driver, onDetail }) {
       <div className="border-t border-slate-100 pt-3 flex flex-col gap-2">
         <button
           onClick={() => onDetail(driver)}
-          className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition shadow-sm"
+          className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition shadow-sm"
         >
           ASSIGN GOODS <ChevronRight className="w-3.5 h-3.5 text-red-500" />
         </button>

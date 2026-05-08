@@ -50,21 +50,32 @@ export function SellerDriverDetail() {
   const unassignMutation = useUnassignDriver();
   const assignMutation = useAssignDriver();
 
-  // Filter trades that belong to this specific driver
-  const driverTrades = useMemo(() => {
-    const all = data?.dashboardRecords ?? [];
-    return all.filter((t) => 
-      (t.driverName !== 'Unassigned' && t.driverName === businessName) || 
-      (t.driverPhone === phoneNumber)
-    );
-  }, [data, businessName, phoneNumber]);
+  const allRecords = useMemo(() => data?.dashboardRecords ?? [], [data]);
 
-  const tradeCount  = driverTrades.length;
-  const totalValue  = driverTrades.reduce((sum, t) => sum + (t.amount ?? 0), 0);
-  const mostRelevantTrade = driverTrades.find((t) => ['IN_TRANSIT', 'ACTIVE', 'BUYER_JOINED'].includes(t.tradeStatus)) || driverTrades[0];
+  // Trades currently assigned to this driver
+  const assignedTrades = useMemo(() => {
+    return allRecords.filter((t) => {
+      const isThisDriver = (t.driverPhone === phoneNumber) || (t.driverName !== 'Unassigned' && t.driverName !== 'Not Assigned' && t.driverName === businessName);
+      return isThisDriver;
+    });
+  }, [allRecords, businessName, phoneNumber]);
 
-  const totalPages = Math.max(1, Math.ceil(tradeCount / PAGE_SIZE));
-  const paginated  = driverTrades.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // Other trades available for assignment
+  const availableTrades = useMemo(() => {
+    return allRecords.filter((t) => {
+      const isUnassigned = !t.driverPhone || t.driverName === 'Unassigned' || t.driverName === 'Not Assigned' || !t.driverName;
+      const isNotThisDriver = t.driverPhone !== phoneNumber && t.driverName !== businessName;
+      return isUnassigned || isNotThisDriver;
+    });
+  }, [allRecords, businessName, phoneNumber]);
+
+  const assignedCount = assignedTrades.length;
+  const availableCount = availableTrades.length;
+  const totalValue    = assignedTrades.reduce((sum, t) => sum + (t.amount ?? 0), 0);
+  const mostRelevantTrade = assignedTrades.find((t) => ['IN_TRANSIT', 'ACTIVE', 'BUYER_JOINED'].includes(t.tradeStatus)) || assignedTrades[0];
+
+  const totalPages = Math.max(1, Math.ceil(availableCount / PAGE_SIZE));
+  const paginatedAvailable = availableTrades.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const handleTabChange = (tabId) => navigate('/seller/dashboard', { state: { activeTab: tabId } });
 
@@ -114,16 +125,16 @@ export function SellerDriverDetail() {
           <>
             {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-10">
-              <div className=" bg-white rounded-xl border border-slate-100 shadow-sm p-6">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Total Shipments</p>
-                <p className="text-5xl font-bold text-slate-900">{tradeCount}</p>
+              <div className=" bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Active Assignments</p>
+                <p className="text-5xl font-bold text-slate-900">{assignedCount}</p>
               </div>
-              <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
+              <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Total Logistics Value</p>
                 <p className="text-5xl font-bold text-slate-900">{formatAmount(totalValue)}</p>
                 <p className="text-xs text-slate-400 mt-2">Aggregated Cargo Value</p>
               </div>
-              <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
+              <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Protocol Status</p>
                 <div className="h-[60px] flex items-center">
                   {mostRelevantTrade ? (
@@ -143,142 +154,192 @@ export function SellerDriverDetail() {
               </div>
             </div>
 
-            {/* Assigned Goods Table */}
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-              <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Package className="w-5 h-5 text-red-600" />
-                  <h2 className="text-xl font-bold text-slate-900">Assigned Goods & Trades</h2>
+            <div className="space-y-12">
+              {/* 1. ACTIVE ASSIGNMENTS TABLE */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden">
+                <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center">
+                      <Package className="w-5 h-5 text-red-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900">Current Driver Assignments</h2>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Active Logistics Ledger</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  Logistics Ledger
-                </div>
-              </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50/50">
-                      <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Trade ID</th>
-                      <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Goods Description</th>
-                      <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Buyer</th>
-                      <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cargo Value</th>
-                      <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Schedule</th>
-                      <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                      <th className="text-right py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginated.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="py-20 text-center">
-                          <Truck className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-                          <p className="text-slate-400 text-sm">No goods have been assigned to this driver yet.</p>
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50/50">
+                        <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Trade ID</th>
+                        <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Goods Description</th>
+                        <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Buyer</th>
+                        <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cargo Value</th>
+                        <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                        <th className="text-right py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Actions</th>
                       </tr>
-                    ) : (
-                      paginated.map((trade) => {
-                        const statusStyle = STATUS_STYLE[trade.tradeStatus] ?? { color: 'bg-slate-100 text-slate-600' };
-                        return (
-                          <tr key={trade.tradeId} className="border-b border-slate-50 hover:bg-slate-50/40 transition group">
-                            <td className="py-4 px-6 text-xs font-mono font-bold text-slate-400 group-hover:text-red-600 transition-colors">
-                              #{trade.tradeId?.toUpperCase()}
-                            </td>
-                            <td className="py-4 px-6 text-sm text-slate-800 font-bold">{trade.goods}</td>
-                            <td className="py-4 px-6 text-sm text-slate-600 font-medium">{trade.buyerName}</td>
-                            <td className="py-4 px-6 text-sm font-black text-slate-900">
-                              ${trade.amount?.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                            </td>
-                            <td className="py-4 px-6">
-                               <div className="flex flex-col gap-0.5">
-                                <div className="flex items-center gap-1.5 text-xs text-slate-700 font-medium">
-                                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                                  <span>{trade.deliveryDate || '—'}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                                  <Clock className="w-3.5 h-3.5 text-slate-400" />
-                                  <span>{trade.deliveryTime || '—'}</span>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="py-4 px-6">
-                              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${statusStyle.color} border-current/10`}>
-                                {trade.tradeStatus?.replace(/_/g, ' ')}
-                              </span>
-                            </td>
-                            <td className="py-4 px-6 text-right">
-                              <div className="flex items-center justify-end gap-3">
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {assignedTrades.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-20 text-center">
+                            <Truck className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+                            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">No active assignments for this driver</p>
+                          </td>
+                        </tr>
+                      ) : (
+                        assignedTrades.map((trade) => {
+                          const statusStyle = STATUS_STYLE[trade.tradeStatus] ?? { color: 'bg-slate-100 text-slate-600' };
+                          return (
+                            <tr key={trade.tradeId} className="border-b border-slate-50 hover:bg-slate-50/40 transition group">
+                              <td className="py-4 px-6 text-xs font-mono font-bold text-slate-400 group-hover:text-red-600 transition-colors">
+                                #{trade.tradeId?.toUpperCase()}
+                              </td>
+                              <td className="py-4 px-6 text-sm text-slate-800 font-bold">{trade.goods}</td>
+                              <td className="py-4 px-6 text-sm text-slate-600 font-medium">{trade.buyerName}</td>
+                              <td className="py-4 px-6 text-sm font-black text-slate-900">
+                                ${trade.amount?.toLocaleString()}
+                              </td>
+                              <td className="py-4 px-6">
+                                <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${statusStyle.color}`}>
+                                  {trade.tradeStatus?.replace(/_/g, ' ')}
+                                </span>
+                              </td>
+                              <td className="py-4 px-6 text-right">
                                 <button 
                                   onClick={async () => {
-                                    await assignMutation.mutateAsync({ tradeId: trade.tradeId, driverPhoneNumber: phoneNumber });
-                                    refetch();
-                                  }}
-                                  disabled={assignMutation.isPending || unassignMutation.isPending || trade.tradeStatus === 'FLAGGED'}
-                                  className="text-[10px] font-bold text-red-600 hover:text-red-700 uppercase tracking-widest disabled:opacity-50 transition"
-                                >
-                                  {assignMutation.isPending && assignMutation.variables?.tradeId === trade.tradeId ? 'Assigning...' : 'Assign'}
-                                </button>
-                                <button 
-                                  onClick={async () => {
-                                    if (window.confirm('Are you sure you want to unassign this driver?')) {
+                                    if (window.confirm('Unassign this driver from this trade?')) {
                                       await unassignMutation.mutateAsync(trade.tradeId);
                                       refetch();
                                     }
                                   }}
                                   disabled={unassignMutation.isPending || assignMutation.isPending || trade.tradeStatus === 'FLAGGED'}
-                                  className="text-[10px] font-bold text-slate-400 hover:text-slate-600 uppercase tracking-widest disabled:opacity-50 transition"
+                                  className="text-[10px] font-black text-slate-400 
+                                  bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded-lg
+                                  uppercase tracking-widest transition disabled:opacity-50"
                                 >
                                   {unassignMutation.isPending && unassignMutation.variables === trade.tradeId ? 'Processing...' : 'Unassign'}
                                 </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between px-6 py-5 border-t border-slate-100 bg-slate-50/30">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                      className="flex items-center gap-1 px-4 py-2 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
-                    >
-                      <ChevronLeft className="w-4 h-4" /> PREV
-                    </button>
-                    {Array.from({ length: totalPages }, (_, i) => (
-                      <button
-                        key={i + 1}
-                        onClick={() => setPage(i + 1)}
-                        className={`w-9 h-9 rounded-lg text-sm font-bold transition shadow-sm ${
-                          page === i + 1
-                            ? 'bg-slate-900 text-white shadow-md'
-                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-                        }`}
-                      >
-                        {i + 1}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={page === totalPages}
-                      className="flex items-center gap-1 px-4 py-2 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
-                    >
-                      NEXT <ChevronRight className="w-4 h-4" />
-                    </button>
+              {/* 2. AVAILABLE CARGO POOL */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden">
+                <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                      <Truck className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900">Available Cargo Pool</h2>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Trades ready for assignment</p>
+                    </div>
                   </div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    Entry {paginated.length > 0
-                      ? `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, tradeCount)}`
-                      : '0'} of {tradeCount}
-                  </p>
                 </div>
-              )}
+
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50/50">
+                        <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Trade ID</th>
+                        <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Goods</th>
+                        <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Buyer</th>
+                        <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Value</th>
+                        <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                        <th className="text-right py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {paginatedAvailable.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-20 text-center text-slate-400 text-xs font-bold uppercase tracking-widest">
+                            No available trades to assign.
+                          </td>
+                        </tr>
+                      ) : (
+                        paginatedAvailable.map((trade) => (
+                          <tr key={trade.tradeId} className="hover:bg-slate-50/40 transition group">
+                            <td className="py-4 px-6 text-xs font-mono font-bold text-slate-400 group-hover:text-red-600 transition-colors">
+                              #{trade.tradeId?.toUpperCase()}
+                            </td>
+                            <td className="py-4 px-6 text-sm text-slate-800 font-bold">
+                              {trade.goods}
+                            </td>
+                            <td className="py-4 px-6 text-sm text-slate-600 font-medium">{trade.buyerName}</td>
+                            <td className="py-4 px-6 text-sm font-black text-slate-900">${trade.amount?.toLocaleString()}</td>
+                            <td className="py-4 px-6">
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${STATUS_STYLE[trade.tradeStatus]?.color || 'bg-slate-100 text-slate-500'}`}>
+                                {trade.tradeStatus?.replace(/_/g, ' ')}
+                              </span>
+                            </td>
+                            <td className="py-4 px-6 text-right">
+                              <button 
+                                onClick={async () => {
+                                  await assignMutation.mutateAsync({ tradeId: trade.tradeId, driverPhoneNumber: phoneNumber });
+                                  refetch();
+                                }}
+                                disabled={assignMutation.isPending || unassignMutation.isPending || trade.tradeStatus === 'FLAGGED'}
+                                className="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition shadow-sm disabled:opacity-50"
+                              >
+                                {assignMutation.isPending && assignMutation.variables?.tradeId === trade.tradeId ? 'Assigning...' : 'Assign to Driver'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination for Available Pool */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between px-6 py-5 border-t border-slate-100 bg-slate-50/30">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        className="flex items-center gap-1 px-4 py-2 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
+                      >
+                        <ChevronLeft className="w-4 h-4" /> PREV
+                      </button>
+                      {Array.from({ length: totalPages }, (_, i) => (
+                        <button
+                          key={i + 1}
+                          onClick={() => setPage(i + 1)}
+                          className={`w-9 h-9 rounded-lg text-sm font-bold transition shadow-sm ${
+                            page === i + 1
+                              ? 'bg-slate-900 text-white shadow-md'
+                              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          {i + 1}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={page === totalPages}
+                        className="flex items-center gap-1 px-4 py-2 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
+                      >
+                        NEXT <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                      Entry {paginatedAvailable.length > 0
+                        ? `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, availableCount)}`
+                        : '0'} of {availableCount}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </>
         )}

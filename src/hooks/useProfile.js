@@ -51,6 +51,11 @@ export function useEditTrade() {
     mutationFn: ({ tradeId, data }) => sellerApi.editTrade(tradeId, data),
   });
 }
+export function useInviteBuyer() {
+  return useMutation({
+    mutationFn: (tradeId) => sellerApi.inviteBuyer(tradeId),
+  });
+}
 
 export function useInviteDriver() {
   return useMutation({

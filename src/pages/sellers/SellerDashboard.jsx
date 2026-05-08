@@ -11,8 +11,10 @@ import { SellerAssignGoodsTab } from './SellerAssignGoodsTab';
 import { SellerFlaggedTab } from './SellerFlaggedTab';
 import { useEffect } from 'react';
 import { useSellerTrades } from '../../hooks/useProfile';
+import { useNavigate } from 'react-router-dom';
 
 export function SellerDashboard() {
+  const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'overview');
   const [isBankModalOpen, setIsBankModalOpen] = useState(false);
@@ -109,13 +111,13 @@ export function SellerDashboard() {
             <div className="bg-white rounded-lg border border-slate-200 p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-slate-900">Recent Trades</h2>
-                <a
-                  href="#trades"
+                <button
+                  onClick={() => navigate('/seller/logistics')}
                   className="flex items-center gap-1 text-red-600 hover:text-red-700 font-medium text-sm"
                 >
                   View All
                   <ExternalLink className="w-4 h-4" />
-                </a>
+                </button>
               </div>
 
               <div className="overflow-x-auto">

@@ -1,4 +1,4 @@
-import { useSellerTrades } from '../../hooks/useProfile';
+import { useSellerTrades, useInviteBuyer } from '../../hooks/useProfile';
 import { 
   Loader2, 
   Search, 
@@ -12,7 +12,11 @@ import {
   User,
   X,
   FileText,
-  AlertCircle
+  AlertCircle,
+  Link as LinkIcon,
+  Copy,
+  Check,
+  UserPlus
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { SellerNav } from '../../components/SellerNav';
@@ -30,7 +34,26 @@ const STATUS_BADGE = {
 };
 
 function TradeDetailModal({ isOpen, onClose, trade }) {
+  const inviteMutation = useInviteBuyer();
+  const [inviteInfo, setInviteInfo] = useState(null);
+  const [copied, setCopied] = useState(false);
+
   if (!isOpen || !trade) return null;
+
+  const handleInvite = async () => {
+    try {
+      const res = await inviteMutation.mutateAsync(trade.tradeId);
+      setInviteInfo(res);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -143,9 +166,57 @@ function TradeDetailModal({ isOpen, onClose, trade }) {
               </div>
             </div>
           </div>
+          {inviteInfo && (
+            <div className="mt-8 p-4 bg-red-50 border border-red-100 rounded-2xl animate-in slide-in-from-top-2 duration-300">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                  <LinkIcon className="w-4 h-4 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-900">Buyer Invitation Link</p>
+                  <p className="text-[10px] text-slate-500 font-medium">Share this with the buyer to join the trade</p>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 p-2.5 bg-white border border-slate-200 rounded-xl">
+                  <input 
+                    readOnly 
+                    value={inviteInfo.deepLinkUrl} 
+                    className="flex-1 bg-transparent border-none text-[10px] font-medium text-slate-600 focus:outline-none"
+                  />
+                  <button 
+                    onClick={() => copyToClipboard(inviteInfo.deepLinkUrl)}
+                    className="p-1.5 hover:bg-slate-50 rounded-lg transition text-slate-400 hover:text-red-600"
+                  >
+                    {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+                <div className="flex items-center justify-between px-1">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Invite Code</p>
+                  <p className="text-xs font-black text-red-600 font-mono tracking-wider">{inviteInfo.inviteCode}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="px-8 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+        <div className="px-8 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+          <div>
+            {trade.tradeStatus === 'CREATED' && !inviteInfo && (
+              <button 
+                onClick={handleInvite}
+                disabled={inviteMutation.isPending}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition shadow-lg shadow-red-200 disabled:opacity-50"
+              >
+                {inviteMutation.isPending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <><UserPlus className="w-3.5 h-3.5" /> Invite Buyer</>
+                )}
+              </button>
+            )}
+          </div>
           <button 
             onClick={onClose}
             className="px-8 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold uppercase tracking-widest rounded-lg transition shadow-md"
@@ -155,6 +226,7 @@ function TradeDetailModal({ isOpen, onClose, trade }) {
         </div>
       </div>
     </div>
+    
   );
 }
 
