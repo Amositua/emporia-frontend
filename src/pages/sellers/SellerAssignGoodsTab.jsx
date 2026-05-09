@@ -124,13 +124,14 @@ export function SellerAssignGoodsTab() {
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Estimated Logistics</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Financial Value</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Protocol Status</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Payment Status</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Invitation Control</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {pendingTrades.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-20 text-center">
+                  <td colSpan="6" className="px-6 py-20 text-center">
                     <div className="max-w-xs mx-auto">
                       <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
                         <Truck className="w-8 h-8 text-slate-300" />
@@ -179,7 +180,24 @@ export function SellerAssignGoodsTab() {
                             ? 'bg-blue-50 text-blue-700 border-blue-100'
                             : 'bg-amber-50 text-amber-700 border-amber-100'
                         }`}>
+                          
                           {trade.tradeStatus.replace('_', ' ')}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${
+                          trade.paymentStatus === 'ESCROW_FUNDED' 
+                            ? 'bg-green-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' 
+                            : 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]'
+                        }`} />
+                        <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded border ${
+                          trade.paymentStatus === 'ESCROW_FUNDED'
+                            ? 'bg-green-50 text-green-700 border-green-100'
+                            : 'bg-amber-50 text-amber-700 border-amber-100'
+                        }`}>
+                          {trade.paymentStatus === 'ESCROW_FUNDED' ? 'Escrow Funded' : 'Escrow Pending'}
                         </span>
                       </div>
                     </td>

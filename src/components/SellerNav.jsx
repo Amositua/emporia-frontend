@@ -10,7 +10,7 @@ export function SellerNav({ activeTab, onTabChange }) {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate('/seller/onboarding');
   };
 
   const tabs = [
@@ -21,7 +21,7 @@ export function SellerNav({ activeTab, onTabChange }) {
     { id: 'goods', label: 'Assign Goods', icon: Package },
     { id: 'drivers', label: 'Drivers', icon: Package },
     { id: 'tracking', label: 'Live Tracking', icon: MapPin },
-    { id: 'financisdd', label: 'Financialsggg', icon: DollarSign },
+    { id: 'financials', label: 'Financials', icon: DollarSign },
     { id: 'flagged', label: 'Flagged', icon: Flag },
   ];
 

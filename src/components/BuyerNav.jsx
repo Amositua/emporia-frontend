@@ -24,7 +24,7 @@ export function BuyerNav({ activeTab, onTabChange }) {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate('/buyer/onboarding');
   };
 
   const tabs = [

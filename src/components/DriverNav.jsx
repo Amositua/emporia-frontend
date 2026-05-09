@@ -19,7 +19,7 @@ export function DriverNav({ activeTab, onTabChange }) {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate('/driver/onboarding');
   };
 
   const tabs = [

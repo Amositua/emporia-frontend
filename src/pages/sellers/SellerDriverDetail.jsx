@@ -65,7 +65,11 @@ export function SellerDriverDetail() {
     return allRecords.filter((t) => {
       const isUnassigned = !t.driverPhone || t.driverName === 'Unassigned' || t.driverName === 'Not Assigned' || !t.driverName;
       const isNotThisDriver = t.driverPhone !== phoneNumber && t.driverName !== businessName;
-      return isUnassigned || isNotThisDriver;
+      
+      // Filter out statuses requested by the user
+      const isForbiddenStatus = ['DRIVER_PENDING', 'IN_TRANSIT', 'DELIVERED'].includes(t.tradeStatus);
+      
+      return (isUnassigned || isNotThisDriver) && !isForbiddenStatus;
     });
   }, [allRecords, businessName, phoneNumber]);
 
@@ -178,13 +182,14 @@ export function SellerDriverDetail() {
                         <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Buyer</th>
                         <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cargo Value</th>
                         <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                        <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Payment</th>
                         <th className="text-right py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {assignedTrades.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="py-20 text-center">
+                          <td colSpan={7} className="py-20 text-center">
                             <Truck className="w-12 h-12 text-slate-200 mx-auto mb-3" />
                             <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">No active assignments for this driver</p>
                           </td>
@@ -205,6 +210,15 @@ export function SellerDriverDetail() {
                               <td className="py-4 px-6">
                                 <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${statusStyle.color}`}>
                                   {trade.tradeStatus?.replace(/_/g, ' ')}
+                                </span>
+                              </td>
+                              <td className="py-4 px-6">
+                                <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
+                                  trade.paymentStatus === 'ESCROW_FUNDED' 
+                                    ? 'bg-green-50 text-green-700 border-green-100' 
+                                    : 'bg-amber-50 text-amber-700 border-amber-100'
+                                }`}>
+                                  {trade.paymentStatus === 'ESCROW_FUNDED' ? 'Escrow Funded' : 'Escrow Pending'}
                                 </span>
                               </td>
                               <td className="py-4 px-6 text-right">
@@ -255,13 +269,14 @@ export function SellerDriverDetail() {
                         <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Buyer</th>
                         <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Value</th>
                         <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                        <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Payment</th>
                         <th className="text-right py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {paginatedAvailable.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="py-20 text-center text-slate-400 text-xs font-bold uppercase tracking-widest">
+                          <td colSpan={7} className="py-20 text-center text-slate-400 text-xs font-bold uppercase tracking-widest">
                             No available trades to assign.
                           </td>
                         </tr>
@@ -279,6 +294,15 @@ export function SellerDriverDetail() {
                             <td className="py-4 px-6">
                               <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${STATUS_STYLE[trade.tradeStatus]?.color || 'bg-slate-100 text-slate-500'}`}>
                                 {trade.tradeStatus?.replace(/_/g, ' ')}
+                              </span>
+                            </td>
+                            <td className="py-4 px-6">
+                              <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
+                                trade.paymentStatus === 'ESCROW_FUNDED' 
+                                  ? 'bg-green-50 text-green-700 border-green-100' 
+                                  : 'bg-amber-50 text-amber-700 border-amber-100'
+                              }`}>
+                                {trade.paymentStatus === 'ESCROW_FUNDED' ? 'Escrow Funded' : 'Escrow Pending'}
                               </span>
                             </td>
                             <td className="py-4 px-6 text-right">
