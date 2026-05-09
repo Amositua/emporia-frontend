@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ClipboardList, Truck, MapPin, Calendar, Clock,
   ChevronRight, Loader2, AlertCircle, TrendingUp,
@@ -79,8 +79,21 @@ function MapWidget({ trade }) {
 
 /* ── Main Component ── */
 export function DriverDashboard() {
-  const [activeTab, setActiveTab]   = useState('overview');
+  const location = useLocation();
+  const [activeTab, setActiveTab]   = useState(location.state?.activeTab || 'overview');
   const [showAll, setShowAll]       = useState(false);
+
+  // Sync tab with location state (e.g. when navigating from detail pages)
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
+    }
+  }, [location.state?.activeTab]);
+
+  // Reset scroll when switching tabs
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activeTab]);
   const { user }                    = useAuth();
   const { data, isLoading, error }  = useDriverTrades();
 
@@ -163,7 +176,10 @@ export function DriverDashboard() {
                   )}
                 </div>
                 {activeTrade && (
-                  <button className="text-[10px] font-black text-slate-500 hover:text-red-600 uppercase tracking-widest flex items-center gap-1 transition">
+                  <button 
+                    onClick={() => setActiveTab('active-shipments')}
+                    className="text-[10px] font-black text-slate-500 hover:text-red-600 uppercase tracking-widest flex items-center gap-1 transition"
+                  >
                     View Full Details <ChevronRight className="w-3 h-3" />
                   </button>
                 )}
@@ -270,7 +286,7 @@ export function DriverDashboard() {
                           <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Trade ID</th>
                           <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Goods</th>
                           <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Buyer</th>
-                          <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Amount</th>
+                          <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Destination</th>
                           <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Scheduled Date</th>
                           <th className="text-left py-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
                         </tr>
@@ -294,8 +310,8 @@ export function DriverDashboard() {
                                   <span className="text-sm text-slate-700 font-medium">{trade.buyerName}</span>
                                 </div>
                               </td>
-                              <td className="py-4 px-6 text-sm font-bold text-slate-900">
-                                ${trade.amount?.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                              <td className="py-4 px-6 text-sm font-bold text-slate-900 truncate max-w-[150px]">
+                                {trade.deliveryAddress || 'Awaiting Address'}
                               </td>
                               <td className="py-4 px-6">
                                 <div className="flex flex-col gap-0.5">

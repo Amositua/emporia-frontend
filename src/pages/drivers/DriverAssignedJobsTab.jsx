@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, ClipboardList, CalendarDays, CircleCheckBig,
   Loader2, AlertCircle, MapPin, ChevronLeft, ChevronRight,
-  TrendingUp, Eye,
+  TrendingUp, Eye, CheckCircle2,
 } from 'lucide-react';
-import { useDriverTrades } from '../../hooks/useProfile';
+import { useDriverTrades, useDriverAcceptTrade } from '../../hooks/useProfile';
+import { driverApi } from '../../lib/api';
 
 /* ── helpers ── */
 function getInitials(name = '') {
@@ -52,7 +53,20 @@ export function DriverAssignedJobsTab() {
   const [dateFrom, setDateFrom]   = useState('');
   const [dateTo, setDateTo]       = useState('');
   const [page, setPage]           = useState(1);
-  const [accepted, setAccepted]   = useState({}); // tradeId → true
+  const [acceptErrors, setAcceptErrors] = useState({}); // tradeId → error msg
+
+  const acceptMutation = useDriverAcceptTrade();
+
+  /* tradeIds being geo-watched */
+  const [trackedTrades, setTrackedTrades] = useState({});     // tradeId → 'watching' | 'denied' | 'error'
+  const watchersRef = useRef({});   // tradeId → watchId
+
+  /* clean up all watchers on unmount */
+  useEffect(() => {
+    return () => {
+      Object.values(watchersRef.current).forEach((id) => navigator.geolocation.clearWatch(id));
+    };
+  }, []);
 
   const trades = useMemo(() => data?.dashboardRecords ?? [], [data]);
 
@@ -82,7 +96,41 @@ export function DriverAssignedJobsTab() {
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const handleSearch = (e) => { setSearch(e.target.value); setPage(1); };
-  const handleAccept = (tradeId) => setAccepted((prev) => ({ ...prev, [tradeId]: true }));
+
+  const handleAccept = (tradeId) => {
+    setAcceptErrors((prev) => { const n = { ...prev }; delete n[tradeId]; return n; });
+    acceptMutation.mutate(tradeId, {
+      onSuccess: () => {
+        /* After backend accept, request geolocation */
+        if (!navigator.geolocation) {
+          setTrackedTrades((p) => ({ ...p, [tradeId]: 'error' }));
+          return;
+        }
+        setTrackedTrades((p) => ({ ...p, [tradeId]: 'requesting' }));
+
+        const watchId = navigator.geolocation.watchPosition(
+          (pos) => {
+            const { latitude: lat, longitude: lng } = pos.coords;
+            driverApi.saveDriverLocation(tradeId, lat, lng);
+            setTrackedTrades((p) => ({ ...p, [tradeId]: 'watching' }));
+          },
+          (err) => {
+            if (err.code === err.PERMISSION_DENIED) {
+              setTrackedTrades((p) => ({ ...p, [tradeId]: 'denied' }));
+            } else {
+              setTrackedTrades((p) => ({ ...p, [tradeId]: 'error' }));
+            }
+          },
+          { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
+        );
+        watchersRef.current[tradeId] = watchId;
+      },
+      onError: (err) => {
+        const msg = err?.message || 'Failed to accept. Please try again.';
+        setAcceptErrors((prev) => ({ ...prev, [tradeId]: msg }));
+      },
+    });
+  };
 
   /* ── page numbers ── */
   function pageNumbers() {
@@ -225,7 +273,8 @@ export function DriverAssignedJobsTab() {
                 paginated.map((trade) => {
                   const initials = getInitials(trade.buyerName);
                   const bgColor  = avatarColor(trade.buyerName || '');
-                  const isAccepted = accepted[trade.tradeId];
+                  const isPending = acceptMutation.isPending && acceptMutation.variables === trade.tradeId;
+                  const acceptErr = acceptErrors[trade.tradeId];
                   return (
                     <tr key={trade.tradeId} className="hover:bg-slate-50/60 transition group">
                       {/* Trade ID */}
@@ -285,24 +334,40 @@ export function DriverAssignedJobsTab() {
                           onClick={() => navigate('/driver/jobs/detail', { state: trade })}
                           className="flex items-center gap-1.5 text-slate-600 hover:text-red-600 text-xs font-bold uppercase tracking-wide transition"
                         >
-                          <Eye className="w-3.5 h-3.5" />
+                          {/* <Eye className="w-3.5 h-3.5" /> */}
                           View Details
                         </button>
                       </td>
 
                       {/* Acceptance */}
                       <td className="py-4 px-5">
-                        {isAccepted || trade.tradeStatus === 'IN_TRANSIT' ? (
-                          <span className="px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wide bg-green-100 text-green-700">
+                        {['DELIVERED', 'COMPLETED'].includes(trade.tradeStatus) ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wide bg-green-100 text-green-700">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Delivered
+                          </span>
+                        ) : ['ACTIVE', 'IN_TRANSIT'].includes(trade.tradeStatus) ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wide bg-blue-100 text-blue-700">
+                            <CheckCircle2 className="w-3 h-3" />
                             Accepted
                           </span>
                         ) : (
-                          <button
-                            onClick={() => handleAccept(trade.tradeId)}
-                            className="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wide rounded transition shadow-sm"
-                          >
-                            Accept
-                          </button>
+                          <div className="flex flex-col gap-1">
+                            <button
+                              onClick={() => handleAccept(trade.tradeId)}
+                              disabled={isPending}
+                              className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white text-xs font-bold uppercase tracking-wide rounded transition shadow-sm"
+                            >
+                              {isPending ? (
+                                <><Loader2 className="w-3 h-3 animate-spin" /> Accepting…</>
+                              ) : (
+                                'Accept'
+                              )}
+                            </button>
+                            {acceptErr && (
+                              <p className="text-[10px] text-red-500 font-medium max-w-[120px] leading-tight">{acceptErr}</p>
+                            )}
+                          </div>
                         )}
                       </td>
                     </tr>

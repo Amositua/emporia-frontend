@@ -10,8 +10,9 @@ import { useAuth } from '../../context/AuthContext';
 /* ── Status Timeline helpers ── */
 const STEPS = [
   { key: 'assigned',  label: 'Job Assigned',  activeStatuses: ['ACTIVE', 'BUYER_JOINED', 'IN_TRANSIT', 'DELIVERED', 'COMPLETED', 'CREATED'] },
-  { key: 'accepted',  label: 'Job Accepted',  activeStatuses: ['IN_TRANSIT', 'DELIVERED', 'COMPLETED'] },
+  { key: 'accepted',  label: 'Job Accepted',  activeStatuses: ['ACTIVE', 'IN_TRANSIT', 'DELIVERED', 'COMPLETED'] },
   { key: 'transit',   label: 'In Transit',    activeStatuses: ['IN_TRANSIT', 'DELIVERED', 'COMPLETED'] },
+  { key: 'delivered', label: 'Delivered',     activeStatuses: ['DELIVERED', 'COMPLETED'] },
 ];
 
 function TimelineStep({ step, trade, isFirst }) {
@@ -42,6 +43,13 @@ function TimelineStep({ step, trade, isFirst }) {
             <Circle className={`w-4 h-4 ${isActive ? 'text-green-600' : 'text-slate-300'}`} />
           </div>
         )}
+        {step.key === 'delivered' && (
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
+            isActive ? 'bg-green-100 border-green-400' : 'bg-slate-100 border-slate-300'
+          }`}>
+            <CheckCircle className={`w-4 h-4 ${isActive ? 'text-green-600' : 'text-slate-300'}`} />
+          </div>
+        )}
         {/* Connector line */}
         {!isFirst && <div className="absolute -top-5 left-3.5 w-px h-5 bg-slate-200" />}
       </div>
@@ -64,6 +72,11 @@ function TimelineStep({ step, trade, isFirst }) {
         {step.key === 'transit' && isFuture && (
           <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest mt-0.5">
             Future State
+          </p>
+        )}
+        {step.key === 'delivered' && !isActive && (
+          <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest mt-0.5">
+            Final Protocol
           </p>
         )}
       </div>
@@ -135,6 +148,21 @@ export function DriverJobDetail() {
                   {trade.paymentStatus || 'PENDING'}
                 </span>
               </div>
+              <div>
+                <p className={labelCls}>Protocol Status</p>
+                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                  {
+                    ACTIVE:       'bg-blue-100 text-blue-700',
+                    BUYER_JOINED: 'bg-indigo-100 text-indigo-700',
+                    IN_TRANSIT:   'bg-amber-100 text-amber-700',
+                    DELIVERED:    'bg-green-100 text-green-700',
+                    COMPLETED:    'bg-green-100 text-green-700',
+                    CANCELLED:    'bg-red-100 text-red-700',
+                  }[trade.tradeStatus] ?? 'bg-slate-100 text-slate-600'
+                }`}>
+                  {trade.tradeStatus?.replace(/_/g, ' ') || 'PENDING'}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -177,6 +205,15 @@ export function DriverJobDetail() {
                       <Circle className={`w-4 h-4 ${step.activeStatuses.includes(trade?.tradeStatus) ? 'text-green-600' : 'text-slate-300'}`} />
                     </div>
                   )}
+                  {step.key === 'delivered' && (
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 flex-shrink-0 z-10 ${
+                      step.activeStatuses.includes(trade?.tradeStatus)
+                        ? 'bg-green-100 border-green-400'
+                        : 'bg-slate-100 border-slate-300'
+                    }`}>
+                      <CheckCircle className={`w-4 h-4 ${step.activeStatuses.includes(trade?.tradeStatus) ? 'text-green-600' : 'text-slate-300'}`} />
+                    </div>
+                  )}
 
                   {/* Step text */}
                   <div>
@@ -195,6 +232,9 @@ export function DriverJobDetail() {
                     )}
                     {step.key === 'transit' && !step.activeStatuses.includes(trade?.tradeStatus) && (
                       <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest mt-0.5">Future State</p>
+                    )}
+                    {step.key === 'delivered' && !step.activeStatuses.includes(trade?.tradeStatus) && (
+                      <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest mt-0.5">Final Protocol</p>
                     )}
                   </div>
                 </div>

@@ -1,6 +1,7 @@
-import { useMemo, useState, useRef } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Truck, Share2, MapPin, ShieldCheck, Loader2, AlertCircle, Clock } from 'lucide-react';
-import { useDriverTrades } from '../../hooks/useProfile';
+import { useDriverTrades, useConfirmDelivery } from '../../hooks/useProfile';
+import { driverApi } from '../../lib/api';
 
 /* ── Helpers ── */
 function formatTime(timeStr) {
@@ -13,49 +14,242 @@ function formatTime(timeStr) {
   } catch { return timeStr; }
 }
 
-/* ── Simulated Map ── */
+/* ── Real Google Map Panel ──
+   Shows:
+     • Driver's live GPS location (from driverApi, polled every 5 min)
+     • Delivery address pin (geocoded from trade.deliveryAddress)
+     • DRIVING route between the two
+   When `trade` changes, old markers + route are cleared and new ones placed. */
 function MapPanel({ trade }) {
+  const mapRef             = useRef(null);
+  const mapObj             = useRef(null);
+  const infoWin            = useRef(null);
+  const geocoderRef        = useRef(null);
+  const directionsService  = useRef(null);
+  const directionsRenderer = useRef(null);
+  const fallbackPolyline   = useRef(null);
+  const driverMarker       = useRef(null);
+  const destMarker         = useRef(null);
+
+  /* 'idle' | 'available' | 'unavailable' */
+  const [driverStatus, setDriverStatus] = useState('idle');
+
+  const DEFAULT_CENTER = { lat: 6.5244, lng: 3.3792 };
+
+  /* ── Init map once ── */
+  useEffect(() => {
+    if (!mapRef.current || mapObj.current || !window.google?.maps) return;
+
+    mapObj.current = new window.google.maps.Map(mapRef.current, {
+      center: DEFAULT_CENTER,
+      zoom: 12,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false,
+      styles: [{ featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }],
+    });
+
+    infoWin.current     = new window.google.maps.InfoWindow();
+    geocoderRef.current = new window.google.maps.Geocoder();
+
+    directionsService.current  = new window.google.maps.DirectionsService();
+    directionsRenderer.current = new window.google.maps.DirectionsRenderer({
+      suppressMarkers:  true,
+      preserveViewport: true,
+      polylineOptions: { strokeColor: '#ef4444', strokeOpacity: 0.85, strokeWeight: 5 },
+    });
+    directionsRenderer.current.setMap(mapObj.current);
+  }, []);
+
+  /* ── drawRoute ── */
+  const drawRoute = useCallback((driverPos, destPos) => {
+    if (!mapObj.current || !window.google?.maps) return;
+    if (fallbackPolyline.current) { fallbackPolyline.current.setMap(null); fallbackPolyline.current = null; }
+    if (!directionsService.current || !directionsRenderer.current) return;
+
+    directionsService.current.route(
+      { origin: driverPos, destination: destPos, travelMode: window.google.maps.TravelMode.DRIVING },
+      (result, status) => {
+        if (status === 'OK') {
+          directionsRenderer.current.setDirections(result);
+        } else {
+          directionsRenderer.current.setDirections({ routes: [] });
+          fallbackPolyline.current = new window.google.maps.Polyline({
+            path: [driverPos, destPos],
+            map: mapObj.current,
+            strokeColor: '#ef4444', strokeOpacity: 0, strokeWeight: 0,
+            icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, strokeColor: '#ef4444', strokeWeight: 4, scale: 5 }, offset: '0', repeat: '18px' }],
+          });
+        }
+      }
+    );
+  }, []);
+
+  /* ── clearAll ── */
+  const clearAll = useCallback(() => {
+    if (directionsRenderer.current) directionsRenderer.current.setDirections({ routes: [] });
+    if (fallbackPolyline.current)   { fallbackPolyline.current.setMap(null); fallbackPolyline.current = null; }
+    if (driverMarker.current)       { driverMarker.current.setMap(null); driverMarker.current = null; }
+    if (destMarker.current)         { destMarker.current.setMap(null);   destMarker.current   = null; }
+  }, []);
+
+  /* ── Rebuild markers whenever the selected trade changes ── */
+  useEffect(() => {
+    if (!mapObj.current || !window.google?.maps || !trade) return;
+
+    clearAll();
+    setDriverStatus('idle');
+
+    const tradeId = trade.tradeId;
+
+    /* Place destination marker (geocode address) */
+    const placeDestination = () => {
+      if (!trade.deliveryAddress || !geocoderRef.current) return;
+      geocoderRef.current.geocode({ address: trade.deliveryAddress }, (res, status) => {
+        if (status !== 'OK' || !res?.[0]?.geometry?.location) return;
+        if (!mapObj.current) return;
+
+        const pos = res[0].geometry.location;
+
+        destMarker.current = new window.google.maps.Marker({
+          position: pos,
+          map: mapObj.current,
+          title: `Destination: ${trade.deliveryAddress}`,
+          icon: {
+            path: window.google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
+            scale: 7, fillColor: '#1d4ed8', fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 2.5, rotation: 0,
+          },
+          animation: window.google.maps.Animation.DROP,
+          zIndex: 10,
+        });
+
+        destMarker.current.addListener('click', () => {
+          infoWin.current?.setContent(`
+            <div style="font-family:sans-serif;padding:6px 4px;min-width:180px">
+              <p style="margin:0 0 4px;font-size:10px;font-weight:900;color:#1d4ed8;text-transform:uppercase">📍 Delivery Address</p>
+              <p style="margin:0;font-size:12px;font-weight:700;color:#0f172a">${trade.deliveryAddress}</p>
+              <p style="margin:4px 0 0;font-size:11px;color:#475569">👤 ${trade.buyerName ?? '—'}</p>
+            </div>
+          `);
+          infoWin.current?.open(mapObj.current, destMarker.current);
+        });
+
+        /* If driver marker is already placed, draw route */
+        if (driverMarker.current) {
+          drawRoute(driverMarker.current.getPosition(), pos);
+          setDriverStatus('available');
+          const bounds = new window.google.maps.LatLngBounds();
+          bounds.extend(driverMarker.current.getPosition());
+          bounds.extend(pos);
+          mapObj.current.fitBounds(bounds, { top: 80, right: 60, bottom: 60, left: 60 });
+        } else {
+          setDriverStatus('unavailable');
+          mapObj.current.panTo(pos);
+          mapObj.current.setZoom(15);
+        }
+      });
+    };
+
+    /* Place driver marker from GPS */
+    const placeDriver = () => {
+      const loc = driverApi.getDriverLocation(tradeId);
+      if (!loc?.lat || !loc?.lng) return;
+
+      if (driverMarker.current) {
+        driverMarker.current.setPosition({ lat: loc.lat, lng: loc.lng });
+        /* Redraw route from new position */
+        if (destMarker.current) drawRoute({ lat: loc.lat, lng: loc.lng }, destMarker.current.getPosition());
+        return;
+      }
+
+      driverMarker.current = new window.google.maps.Marker({
+        position: { lat: loc.lat, lng: loc.lng },
+        map: mapObj.current,
+        title: 'Your Location',
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 14, fillColor: '#ef4444', fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 3,
+        },
+        label: { text: '🚛', fontSize: '14px' },
+        animation: window.google.maps.Animation.DROP,
+        zIndex: 20,
+      });
+
+      driverMarker.current.addListener('click', () => {
+        infoWin.current?.setContent(`
+          <div style="font-family:sans-serif;padding:6px 4px;min-width:160px">
+            <p style="margin:0 0 4px;font-size:10px;font-weight:900;color:#ef4444;text-transform:uppercase">🚛 Your Location</p>
+            <p style="margin:0;font-size:11px;color:#475569">${trade.goods ?? '—'}</p>
+            <p style="margin:4px 0 0;font-size:10px;color:#94a3b8">Live GPS</p>
+          </div>
+        `);
+        infoWin.current?.open(mapObj.current, driverMarker.current);
+      });
+
+      /* If dest is already placed, draw route + fit */
+      if (destMarker.current) {
+        drawRoute({ lat: loc.lat, lng: loc.lng }, destMarker.current.getPosition());
+        setDriverStatus('available');
+        const bounds = new window.google.maps.LatLngBounds();
+        bounds.extend({ lat: loc.lat, lng: loc.lng });
+        bounds.extend(destMarker.current.getPosition());
+        mapObj.current.fitBounds(bounds, { top: 80, right: 60, bottom: 60, left: 60 });
+      }
+    };
+
+    placeDriver();
+    placeDestination();
+
+    /* Poll GPS every 5 minutes */
+    const interval = setInterval(() => {
+      const loc = driverApi.getDriverLocation(tradeId);
+      if (loc?.lat && loc?.lng && driverMarker.current) {
+        driverMarker.current.setPosition({ lat: loc.lat, lng: loc.lng });
+        if (destMarker.current) drawRoute({ lat: loc.lat, lng: loc.lng }, destMarker.current.getPosition());
+      }
+    }, 300000);
+
+    return () => { clearInterval(interval); clearAll(); };
+  }, [trade?.tradeId, clearAll, drawRoute]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
-    <div className="relative bg-slate-200 rounded-xl overflow-hidden" style={{ minHeight: 280 }}>
-      {/* Grid */}
-      <div className="absolute inset-0"
-        style={{
-          backgroundImage: `repeating-linear-gradient(0deg,#94a3b8 0,#94a3b8 1px,transparent 1px,transparent 48px),
-                            repeating-linear-gradient(90deg,#94a3b8 0,#94a3b8 1px,transparent 1px,transparent 48px)`,
-          opacity: 0.25,
-        }}
-      />
-      {/* Simulated terrain tone */}
-      <div className="absolute inset-0 bg-gradient-to-br from-sky-100 via-emerald-100 to-amber-100 opacity-60" />
+    <div className="relative bg-slate-100 rounded-xl overflow-hidden" style={{ minHeight: 300 }}>
+      <div ref={mapRef} className="absolute inset-0" />
 
-      {/* Dashed route line */}
-      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-        <line x1="20" y1="70" x2="78" y2="28" stroke="#ef4444" strokeWidth="0.8" strokeDasharray="3 2" />
-      </svg>
-
-      {/* Origin dot */}
-      <div className="absolute" style={{ left: '18%', top: '65%' }}>
-        <div className="w-4 h-4 rounded-full bg-amber-500 border-2 border-white shadow-md" />
-      </div>
-
-      {/* Destination pin */}
-      <div className="absolute" style={{ left: '74%', top: '22%' }}>
-        <div className="relative">
-          <div className="w-5 h-5 rounded-full bg-red-600 border-2 border-white shadow-lg z-10 relative" />
-          <div className="w-5 h-5 rounded-full bg-red-500 opacity-30 animate-ping absolute inset-0" />
+      {/* Legend */}
+      <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm rounded-xl shadow-md border border-slate-200 px-3 py-2.5 z-10 space-y-1.5">
+        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Legend</p>
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center text-[9px]">🚛</div>
+          <span className="text-[10px] font-semibold text-slate-700">Your Location</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-4 flex items-center justify-center">
+            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-blue-700"><path d="M12 2L7 21l5-3 5 3z"/></svg>
+          </div>
+          <span className="text-[10px] font-semibold text-slate-700">Delivery Address</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-1 rounded-full bg-red-400" />
+          <span className="text-[10px] font-semibold text-slate-700">Route</span>
         </div>
       </div>
 
-      {/* DIST + ETA overlays */}
-      <div className="absolute bottom-4 left-4 right-4 grid grid-cols-2 gap-3">
-        <div className="bg-white/90 backdrop-blur-sm rounded-lg px-4 py-2.5 shadow">
-          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Dist</p>
-          <p className="text-lg font-black text-slate-900">14.2 km</p>
+      {/* GPS unavailable banner */}
+      {driverStatus === 'unavailable' && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-3 py-2 shadow-md">
+          <span className="text-sm">📡</span>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-amber-700">GPS unavailable</p>
+            <p className="text-[9px] font-medium text-amber-600">Location not shared yet</p>
+          </div>
         </div>
-        <div className="bg-white/90 backdrop-blur-sm rounded-lg px-4 py-2.5 shadow">
-          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">ETA</p>
-          <p className="text-lg font-black text-slate-900">{formatTime(trade?.deliveryTime)}</p>
-        </div>
+      )}
+
+      {/* ETA overlay */}
+      <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm rounded-lg px-4 py-2 shadow z-10">
+        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">ETA</p>
+        <p className="text-base font-black text-slate-900">{formatTime(trade?.deliveryTime)}</p>
       </div>
     </div>
   );
@@ -65,12 +259,12 @@ function MapPanel({ trade }) {
 function DeliveryLog({ tradeStatus }) {
   const steps = [
     { key: 'pickup',   label: 'Pickup Confirmed', sub: 'Seller Location', done: true,  live: false },
-    { key: 'transit',  label: 'In Transit',        sub: 'En Route',        done: ['IN_TRANSIT','DELIVERED','COMPLETED'].includes(tradeStatus), live: false },
+    // { key: 'transit',  label: 'In Transit',        sub: 'En Route',        done: ['IN_TRANSIT','DELIVERED','COMPLETED'].includes(tradeStatus), live: false },
     { key: 'onroute',  label: 'On-route',           sub: 'Live tracking',   done: false, live: ['IN_TRANSIT','ACTIVE'].includes(tradeStatus) },
     { key: 'arrival',  label: 'Arrival at Hub',     sub: 'Destination',     done: ['DELIVERED','COMPLETED'].includes(tradeStatus), live: false },
   ];
 
-  const times = ['08:45', '09:15', null, null];
+  const times = ['', '', null, null];
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm h-full">
@@ -155,8 +349,9 @@ export function DriverActiveShipmentsTab() {
   const { data, isLoading, error } = useDriverTrades();
   const [search, setSearch]    = useState('');
   const [selectedId, setSelectedId] = useState(null);
-  const [code, setCode]        = useState(Array(6).fill(''));
+  const [code, setCode]        = useState(Array(4).fill(''));
   const inputRefs              = useRef([]);
+  const confirmDeliveryMutation = useConfirmDelivery();
 
   const activeTrades = useMemo(() => {
     const all = data?.dashboardRecords ?? [];
@@ -181,12 +376,29 @@ export function DriverActiveShipmentsTab() {
     const next = [...code];
     next[idx] = digit;
     setCode(next);
-    if (digit && idx < 5) inputRefs.current[idx + 1]?.focus();
+    if (digit && idx < 3) inputRefs.current[idx + 1]?.focus();
   };
 
   const handleCodeKeyDown = (idx, e) => {
     if (e.key === 'Backspace' && !code[idx] && idx > 0) {
       inputRefs.current[idx - 1]?.focus();
+    }
+  };
+
+  const handleConfirmDelivery = async () => {
+    if (!selected || code.some(d => !d)) return;
+    
+    const deliveryCode = code.join('');
+    try {
+      await confirmDeliveryMutation.mutateAsync({
+        tradeId: selected.tradeId,
+        deliveryCode
+      });
+      alert('Delivery confirmed successfully!');
+      setCode(Array(4).fill(''));
+    } catch (err) {
+      console.error('Delivery confirmation failed:', err);
+      alert(`Confirmation failed: ${err.message || 'Unknown error'}`);
     }
   };
 
@@ -322,12 +534,12 @@ export function DriverActiveShipmentsTab() {
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Goods</p>
                     <p className="text-sm text-slate-700">{selected.goods}</p>
                   </div>
-                  <div>
+                  {/* <div>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Escrow</p>
                     <p className="text-sm font-bold text-green-600">
                       ${selected.amount?.toLocaleString('en-US', { minimumFractionDigits: 2 }) ?? '—'}
                     </p>
-                  </div>
+                  </div> */}
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Seller</p>
@@ -358,16 +570,18 @@ export function DriverActiveShipmentsTab() {
                       value={digit}
                       onChange={(e) => handleCodeChange(i, e.target.value)}
                       onKeyDown={(e) => handleCodeKeyDown(i, e)}
-                      className="w-9 h-9 rounded border border-slate-300 text-center text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition caret-transparent"
+                      className="w-10 h-9 rounded border border-slate-300 text-center text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition caret-transparent"
                     />
                   ))}
                 </div>
               </div>
               <button
-                disabled={code.some((d) => !d)}
-                className="px-8 py-3 bg-red-600 hover:bg-red-700 disabled:bg-red-300 disabled:cursor-not-allowed text-white text-xs font-black uppercase tracking-widest rounded-lg transition shadow-sm flex-shrink-0"
+                disabled={code.some((d) => !d) || confirmDeliveryMutation.isPending}
+                onClick={handleConfirmDelivery}
+                className="px-8 py-3 bg-red-600 hover:bg-red-700 disabled:bg-red-300 disabled:cursor-not-allowed text-white text-xs font-black uppercase tracking-widest rounded-lg transition shadow-sm flex-shrink-0 flex items-center justify-center gap-2"
               >
-                Confirm Delivery
+                {confirmDeliveryMutation.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
+                {confirmDeliveryMutation.isPending ? 'Confirming...' : 'Confirm Delivery'}
               </button>
             </div>
           </div>

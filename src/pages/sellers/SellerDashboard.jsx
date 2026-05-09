@@ -9,6 +9,7 @@ import { SellerBuyersTab } from './SellerBuyersTab';
 import { SellerDriversTab } from './SellerDriversTab';
 import { SellerAssignGoodsTab } from './SellerAssignGoodsTab';
 import { SellerFlaggedTab } from './SellerFlaggedTab';
+import { SellerLiveTrackingTab } from './SellerLiveTrackingTab';
 import { useEffect } from 'react';
 import { useSellerTrades } from '../../hooks/useProfile';
 import { useNavigate } from 'react-router-dom';
@@ -19,6 +20,18 @@ export function SellerDashboard() {
   const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'overview');
   const [isBankModalOpen, setIsBankModalOpen] = useState(false);
   const [hasBankInfo, setHasBankInfo] = useState(() => localStorage.getItem('emporia_bank_set') === 'true');
+  
+  // Sync tab with location state
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
+    }
+  }, [location.state?.activeTab]);
+
+  // Reset scroll when switching tabs
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activeTab]);
 
   useEffect(() => {
     // Show modal if bank details haven't been set in this browser
@@ -70,35 +83,37 @@ export function SellerDashboard() {
     <div className="min-h-screen bg-slate-50">
       <SellerNav activeTab={activeTab} onTabChange={setActiveTab} />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-slate-900 mb-2">
-              {activeTab === 'overview' && 'Dashboard Overview'}
-              {activeTab === 'trade' && 'New Escrow Trade'}
-              {activeTab === 'buyers' && 'Buyer Directory'}
-              {activeTab === 'drivers' && 'Driver Directory'}
-              {activeTab === 'goods' && 'Assign Goods to Drivers'}
-              {activeTab !== 'overview' && activeTab !== 'trade' && activeTab !== 'buyers' && activeTab !== 'drivers' && activeTab !== 'goods' && activeTab.replace('-', ' ')}
-            </h1>
-            <p className="text-slate-600">
-              {activeTab === 'overview' && 'Institutional Seller Portal Overview'}
-              {activeTab === 'trade' && 'Initiate secure B2B transactions with escrow protection'}
-              {activeTab === 'buyers' && 'Manage institutional relationships and verified procurement partners'}
-              {activeTab === 'drivers' && 'Access our network of verified institutional logistics partners'}
-              {activeTab === 'goods' && 'Generate onboarding links for drivers to begin shipment protocols'}
-            </p>
+      <main className={activeTab === 'tracking' ? 'w-full' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'}>
+        {activeTab !== 'tracking' && (
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div>
+              <h1 className="text-4xl font-bold text-slate-900 mb-2">
+                {activeTab === 'overview' && 'Dashboard Overview'}
+                {activeTab === 'trade' && 'New Escrow Trade'}
+                {activeTab === 'buyers' && 'Buyer Directory'}
+                {activeTab === 'drivers' && 'Driver Directory'}
+                {activeTab === 'goods' && 'Assign Goods to Drivers'}
+                {activeTab !== 'overview' && activeTab !== 'trade' && activeTab !== 'buyers' && activeTab !== 'drivers' && activeTab !== 'goods' && activeTab.replace('-', ' ')}
+              </h1>
+              <p className="text-slate-600">
+                {activeTab === 'overview' && 'Institutional Seller Portal Overview'}
+                {activeTab === 'trade' && 'Initiate secure B2B transactions with escrow protection'}
+                {activeTab === 'buyers' && 'Manage institutional relationships and verified procurement partners'}
+                {activeTab === 'drivers' && 'Access our network of verified institutional logistics partners'}
+                {activeTab === 'goods' && 'Generate onboarding links for drivers to begin shipment protocols'}
+              </p>
+            </div>
+            {!hasBankInfo && (
+              <button
+                onClick={() => setIsBankModalOpen(true)}
+                className="flex items-center justify-center gap-2 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-all font-bold shadow-md hover:shadow-lg text-sm uppercase tracking-wider"
+              >
+                <DollarSign className="w-4 h-4" />
+                Submit Bank Info
+              </button>
+            )}
           </div>
-          {!hasBankInfo && (
-            <button
-              onClick={() => setIsBankModalOpen(true)}
-              className="flex items-center justify-center gap-2 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-all font-bold shadow-md hover:shadow-lg text-sm uppercase tracking-wider"
-            >
-              <DollarSign className="w-4 h-4" />
-              Submit Bank Info
-            </button>
-          )}
-        </div>
+        )}
 
         {activeTab === 'overview' && (
           <>
@@ -212,13 +227,18 @@ export function SellerDashboard() {
           <SellerFlaggedTab />
         )}
 
-        {activeTab !== 'overview' && activeTab !== 'trade' && activeTab !== 'buyers' && activeTab !== 'drivers' && activeTab !== 'goods' && activeTab !== 'flagged' && (
+        {activeTab === 'tracking' && (
+          <SellerLiveTrackingTab />
+        )}
+
+        {/* {activeTab !== 'overview' && activeTab !== 'trade' && activeTab !== 'buyers' && activeTab !== 'drivers' && activeTab !== 'goods' && activeTab !== 'flagged' && activeTab !== 'tracking' && (
           <div className="bg-white rounded-lg border border-slate-200 p-12 text-center">
             <p className="text-slate-600 text-lg">
               {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} section coming soon
             </p>
+            
           </div>
-        )}
+        )} */}
       </main>
 
       <BankAccountModal 

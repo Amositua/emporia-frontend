@@ -132,3 +132,22 @@ export function useDriverTrades() {
     queryFn: driverApi.getDriverTrades,
   });
 }
+
+export function useDriverAcceptTrade() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (tradeId) => driverApi.acceptTrade(tradeId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['driverTrades'] });
+    },
+  });
+}
+export function useConfirmDelivery() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tradeId, deliveryCode }) => driverApi.confirmDelivery(tradeId, deliveryCode),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['driverTrades'] });
+    },
+  });
+}

@@ -86,7 +86,7 @@ export function BuyerOnboarding() {
 
       <main className="flex-1 flex items-center justify-center p-4 py-6 relative">
         <button 
-          onClick={() => navigate('/')} 
+          onClick={() => navigate('/get-started')} 
           className="absolute top-4 left-4 md:top-8 md:left-8 flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
         >
           <ArrowLeft className="w-5 h-5" />

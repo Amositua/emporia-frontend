@@ -1,12 +1,26 @@
-import { ChartBar as BarChart3, ShoppingBag, Truck, DollarSign, Circle as HelpCircle, Bell, Settings, LogOut } from 'lucide-react';
+import { ChartBar as BarChart3, ShoppingBag, Truck, DollarSign, Circle as HelpCircle, Bell, Settings, LogOut, MapPin } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export function BuyerNav({ activeTab, onTabChange }) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout, user } = useAuth();
+
+  const handleTabClick = (id) => {
+    if (id === 'sellers') {
+      navigate('/buyer/sellers');
+      return;
+    }
+    
+    if (location.pathname !== '/buyer/dashboard') {
+      navigate('/buyer/dashboard', { state: { activeTab: id } });
+    } else {
+      onTabChange(id);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -17,9 +31,9 @@ export function BuyerNav({ activeTab, onTabChange }) {
     { id: 'overview', label: 'Overview', icon: BarChart3 },
     { id: 'logistics', label: 'Logistics', icon: Truck },
     { id: 'sellers', label: 'Sellers', icon: ShoppingBag },
-    { id: 'live-tracking', label: 'Live Tracking', icon: Truck },
+    { id: 'live-tracking', label: 'Live Tracking', icon: MapPin },
     { id: 'payment', label: 'Payment', icon: DollarSign },
-    // { id: 'support', label: 'Support', icon: HelpCircle },
+    // { id: 'profile', label: 'Account', icon: Settings },
   ];
 
   return (
@@ -60,7 +74,10 @@ export function BuyerNav({ activeTab, onTabChange }) {
                 </button>
                 {showUserMenu && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200">
-                    <button className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700">
+                    <button 
+                      onClick={() => navigate('/buyer/profile')}
+                      className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
+                    >
                       <Settings className="w-4 h-4" />
                       Account Settings
                     </button>
@@ -84,7 +101,7 @@ export function BuyerNav({ activeTab, onTabChange }) {
               {tabs.map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
-                  onClick={() => onTabChange(id)}
+                  onClick={() => handleTabClick(id)}
                   className={`px-1 py-3 text-sm font-medium border-b-2 transition whitespace-nowrap flex items-center gap-2 ${
                     activeTab === id
                       ? 'border-red-600 text-red-600'

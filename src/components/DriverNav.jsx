@@ -1,12 +1,21 @@
 import { ChartBar as BarChart3, Truck, MapPin, ShoppingBag, HelpCircle, Bell, Settings, LogOut } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export function DriverNav({ activeTab, onTabChange }) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout, user } = useAuth();
+
+  const handleTabClick = (id) => {
+    if (location.pathname !== '/driver/dashboard') {
+      navigate('/driver/dashboard', { state: { activeTab: id } });
+    } else {
+      onTabChange(id);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -18,7 +27,7 @@ export function DriverNav({ activeTab, onTabChange }) {
     { id: 'active-shipments', label: 'Active Shipments', icon: Truck },
     { id: 'assigned-jobs', label: 'Assigned Jobs', icon: MapPin },
     { id: 'sellers', label: 'Sellers', icon: ShoppingBag },
-    // { id: 'support', label: 'Support', icon: HelpCircle },
+    // { id: 'profile', label: 'Account', icon: Settings },
   ];
 
   return (
@@ -47,9 +56,12 @@ export function DriverNav({ activeTab, onTabChange }) {
               <button className="p-2 hover:bg-slate-100 rounded-lg transition">
                 <Bell className="w-5 h-5 text-slate-700" />
               </button>
-              <button className="p-2 hover:bg-slate-100 rounded-lg transition">
+              {/* <button 
+                onClick={() => navigate('/driver/profile')}
+                className="p-2 hover:bg-slate-100 rounded-lg transition"
+              >
                 <Settings className="w-5 h-5 text-slate-700" />
-              </button>
+              </button> */}
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
@@ -59,7 +71,10 @@ export function DriverNav({ activeTab, onTabChange }) {
                 </button>
                 {showUserMenu && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200">
-                    <button className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700">
+                    <button 
+                      onClick={() => navigate('/driver/profile')}
+                      className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
+                    >
                       <Settings className="w-4 h-4" />
                       Account Settings
                     </button>
@@ -83,7 +98,7 @@ export function DriverNav({ activeTab, onTabChange }) {
               {tabs.map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
-                  onClick={() => onTabChange(id)}
+                  onClick={() => handleTabClick(id)}
                   className={`px-1 py-3 text-sm font-medium border-b-2 transition whitespace-nowrap flex items-center gap-2 ${
                     activeTab === id
                       ? 'border-red-600 text-red-600'

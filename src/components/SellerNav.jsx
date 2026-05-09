@@ -21,7 +21,7 @@ export function SellerNav({ activeTab, onTabChange }) {
     { id: 'goods', label: 'Assign Goods', icon: Package },
     { id: 'drivers', label: 'Drivers', icon: Package },
     { id: 'tracking', label: 'Live Tracking', icon: MapPin },
-    { id: 'financials', label: 'Financials', icon: DollarSign },
+    { id: 'financisdd', label: 'Financialsggg', icon: DollarSign },
     { id: 'flagged', label: 'Flagged', icon: Flag },
   ];
 

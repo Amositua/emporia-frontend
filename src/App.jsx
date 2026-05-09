@@ -2,7 +2,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import ScrollToTop from './components/ScrollToTop';
 import { RoleSelection } from './pages/RoleSelection';
+import { LandingPage } from './pages/LandingPage';
 import { SellerOnboarding } from './pages/sellers/SellerOnboarding';
 import { BuyerOnboarding } from './pages/buyers/BuyerOnboarding';
 import { DriverOnboarding } from './pages/drivers/DriverOnboarding';
@@ -14,9 +16,11 @@ import { SellerLogisticsPage } from './pages/sellers/SellerLogisticsPage';
 import { BuyerDashboard } from './pages/buyers/BuyerDashboard';
 import { BuyerSellersPage } from './pages/buyers/BuyerSellersPage';
 import { BuyerSellerDetail } from './pages/buyers/BuyerSellerDetail';
+import { BuyerProfile } from './pages/buyers/BuyerProfile';
 import { BuyerLogisticsDetail } from './pages/buyers/BuyerLogisticsDetail';
 import { PaymentSuccessPage } from './pages/buyers/PaymentSuccessPage';
 import { DriverDashboard } from './pages/drivers/DriverDashboard';
+import { DriverProfile } from './pages/drivers/DriverProfile';
 import { DriverJobDetail } from './pages/drivers/DriverJobDetail';
 import { DriverSellerHistory } from './pages/drivers/DriverSellerHistory';
 import './index.css';
@@ -28,8 +32,10 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
+          <ScrollToTop />
           <Routes>
-            <Route path="/" element={<RoleSelection />} />
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/get-started" element={<RoleSelection />} />
             <Route path="/seller/onboarding" element={<SellerOnboarding />} />
             <Route path="/buyer/onboarding" element={<BuyerOnboarding />} />
             <Route path="/driver/onboarding" element={<DriverOnboarding />} />
@@ -98,6 +104,14 @@ function App() {
               }
             />
             <Route
+              path="/buyer/profile"
+              element={
+                <ProtectedRoute requiredRole="BUYER">
+                  <BuyerProfile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/buyer/logistics/detail"
               element={
                 <ProtectedRoute requiredRole="BUYER">
@@ -118,6 +132,14 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="DRIVER">
                   <DriverDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/driver/profile"
+              element={
+                <ProtectedRoute requiredRole="DRIVER">
+                  <DriverProfile />
                 </ProtectedRoute>
               }
             />

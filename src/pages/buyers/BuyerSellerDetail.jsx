@@ -57,7 +57,7 @@ export function BuyerSellerDetail() {
     );
   }
 
-  const activeTrades = trades.filter(t => ['ACTIVE', 'BUYER_JOINED'].includes(t.tradeStatus));
+  const activeTrades = trades.filter(t => ['ACTIVE', 'DRIVER_PENDING', 'DRIVER_ASSIGNED', 'FLAGGED', 'BUYER_JOINED'].includes(t.tradeStatus));
   const deliveryRecords = trades.filter(t => ['IN_TRANSIT', 'DELIVERED', 'COMPLETED'].includes(t.tradeStatus));
 
   const handleTabChange = (tabId) => {
@@ -124,6 +124,7 @@ export function BuyerSellerDetail() {
                    <th className="text-left py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Goods</th>
                    <th className="text-left py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Amount</th>
                    <th className="text-left py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                   <th className="text-left py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Delivery Address</th>
                    <th className="text-left py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Delivery Date</th>
                    <th className="text-left py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Time</th>
                  </tr>
@@ -131,7 +132,7 @@ export function BuyerSellerDetail() {
               <tbody className="divide-y divide-slate-100">
                 {activeTrades.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-12 text-center text-slate-400 text-sm">No active trades.</td>
+                    <td colSpan={6} className="py-12 text-center text-slate-400 text-sm">No active trades.</td>
                   </tr>
                 ) : (
                   activeTrades.map((trade) => (
@@ -151,6 +152,11 @@ export function BuyerSellerDetail() {
                         <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide border ${STATUS_BADGE[trade.tradeStatus] || 'bg-slate-50 text-slate-600 border-slate-100'}`}>
                           {trade.tradeStatus.replace(/_/g, ' ')}
                         </span>
+                      </td>
+                      <td className="py-5 px-6">
+                        <p className="text-xs text-slate-600 font-medium truncate max-w-[150px]">
+                          {trade.deliveryAddress || '—'}
+                        </p>
                       </td>
                       <td className="py-5 px-6">
                         <p className="text-xs text-slate-600 font-medium">
@@ -186,13 +192,16 @@ export function BuyerSellerDetail() {
                   <th className="text-left py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Trade ID</th>
                   <th className="text-left py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Goods</th>
                   <th className="text-left py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Amount</th>
+                  <th className="text-left py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Delivered Date</th>
+                  <th className="text-left py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Time</th>
+                  <th className="text-left py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Delivery Address</th>
                   <th className="text-left py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Protocol Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {deliveryRecords.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-12 text-center text-slate-400 text-sm">No delivery records.</td>
+                    <td colSpan={7} className="py-12 text-center text-slate-400 text-sm">No delivery records.</td>
                   </tr>
                 ) : (
                   deliveryRecords.map((trade) => (
@@ -205,6 +214,21 @@ export function BuyerSellerDetail() {
                       <td className="py-5 px-6 text-sm font-medium text-slate-700">{trade.goods}</td>
                       <td className="py-5 px-6 text-right">
                         <span className="text-sm font-bold text-slate-900">{formatAmount(trade.amount)}</span>
+                      </td>
+                      <td className="py-5 px-6">
+                        <p className="text-xs text-slate-600 font-medium whitespace-nowrap">
+                          {trade.deliveryDate ? formatDate(trade.deliveryDate) : '—'}
+                        </p>
+                      </td>
+                      <td className="py-5 px-6">
+                        <p className="text-xs text-slate-600 font-medium">
+                          {trade.deliveryTime || '—'}
+                        </p>
+                      </td>
+                      <td className="py-5 px-6">
+                        <p className="text-xs text-slate-600 font-medium truncate max-w-[150px]">
+                          {trade.deliveryAddress || '—'}
+                        </p>
                       </td>
                       <td className="py-5 px-6">
                         <div className="flex items-center gap-3">

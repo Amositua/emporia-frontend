@@ -228,4 +228,43 @@ export const driverApi = {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
   },
+
+  async acceptTrade(tradeId) {
+    const stored = localStorage.getItem('emporia_user');
+    const user = stored ? JSON.parse(stored) : null;
+    const token = user?.token || user?.accessToken || user?.access_token;
+
+    return apiClient.request(`/trade/${tradeId}/driver-accept`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  },
+
+  async confirmDelivery(tradeId, deliveryCode) {
+    const stored = localStorage.getItem('emporia_user');
+    const user = stored ? JSON.parse(stored) : null;
+    const token = user?.token || user?.accessToken || user?.access_token;
+
+    return apiClient.request(`/trade/${tradeId}/deliver`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: { deliveryCode },
+    });
+  },
+
+  /* Persist driver lat/lng in localStorage (keyed per trade).
+     In production this would be a WebSocket push or a dedicated backend endpoint. */
+  saveDriverLocation(tradeId, lat, lng) {
+    try {
+      const key = `emporia_driver_location_${tradeId}`;
+      localStorage.setItem(key, JSON.stringify({ lat, lng, ts: Date.now() }));
+    } catch (_) {}
+  },
+
+  getDriverLocation(tradeId) {
+    try {
+      const raw = localStorage.getItem(`emporia_driver_location_${tradeId}`);
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) { return null; }
+  },
 };

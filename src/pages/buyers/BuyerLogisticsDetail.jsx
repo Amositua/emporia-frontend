@@ -158,7 +158,7 @@ export function BuyerLogisticsDetail() {
                <h2 className="text-base font-bold text-slate-900 mb-1">Trade Overview</h2>
                <p className="text-xs text-slate-500 mb-6">Physical commodity verification and logistics status.</p>
                
-               <div className="grid grid-cols-2 gap-8">
+               <div className="grid grid-cols-2 gap-8 mb-6">
                  <div>
                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Goods Name</p>
                    <p className="text-sm font-bold text-slate-800">{trade.goods || 'Industrial Urea'}</p>
@@ -168,6 +168,32 @@ export function BuyerLogisticsDetail() {
                    <p className="text-sm font-bold text-slate-800">{trade.deliveryDate ? formatDate(trade.deliveryDate) : 'Nov 24, 2023'}</p>
                  </div>
                </div>
+               <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Delivery Address</p>
+                  <p className="text-sm font-bold text-slate-800">{trade.deliveryAddress || 'Awaiting Address Detail'}</p>
+               </div>
+
+               {['ACTIVE', 'IN_TRANSIT'].includes(trade.tradeStatus) && trade.deliveryCode && (
+                 <div className="mt-4 pt-4 border-t border-slate-100">
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Delivery Confirmation Code</p>
+                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg">
+                     <span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Code</span>
+                     <span className="text-lg font-black text-amber-700 font-mono tracking-[0.25em]">{trade.deliveryCode}</span>
+                   </div>
+                   <p className="text-[10px] text-slate-400 mt-1.5">Share this code with the driver to confirm delivery.</p>
+                 </div>
+               )}
+            </div>
+
+            {/* Destination Info */}
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex items-center gap-6">
+              <div className="w-12 h-12 bg-slate-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Navigation className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Final Destination</p>
+                <p className="text-sm font-bold text-slate-900">{trade.deliveryAddress || 'Address not yet specified in protocol.'}</p>
+              </div>
             </div>
 
             {/* Protocol Status */}
