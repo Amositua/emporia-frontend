@@ -35,6 +35,7 @@ function GoogleMapPanel({ trades, allTradesCount, selectedTrade, onSelectTrade }
   const directionsService  = useRef(null);
   const directionsRenderer = useRef(null);
   const fallbackPolyline   = useRef(null);
+  const simulationRef      = useRef(null);
 
   /* 'idle' | 'available' | 'unavailable' — tracks whether selected trade has driver GPS */
   const [driverStatus, setDriverStatus] = useState('idle');
@@ -96,6 +97,26 @@ function GoogleMapPanel({ trades, allTradesCount, selectedTrade, onSelectTrade }
       (result, status) => {
         if (status === 'OK') {
           directionsRenderer.current.setDirections(result);
+          
+          // --- SIMULATION LOGIC ---
+          const path = result.routes[0].overview_path;
+          const activeTradeId = selectedTrade?.tradeId;
+          const marker = driverMarkers.current[activeTradeId];
+          
+          if (path && path.length > 0 && marker) {
+            console.log('[Simulation] Starting Seller-view movement for Trade:', activeTradeId);
+            let step = 0;
+            if (simulationRef.current) clearInterval(simulationRef.current);
+            simulationRef.current = setInterval(() => {
+              if (step >= path.length) {
+                console.log('[Simulation] Seller-view reached destination.');
+                clearInterval(simulationRef.current);
+                return;
+              }
+              marker.setPosition(path[step]);
+              step++;
+            }, 150);
+          }
         } else {
           /* Directions API failed — draw a simple dashed straight line */
           directionsRenderer.current.setDirections({ routes: [] });
@@ -131,6 +152,10 @@ function GoogleMapPanel({ trades, allTradesCount, selectedTrade, onSelectTrade }
       fallbackPolyline.current.setMap(null);
       fallbackPolyline.current = null;
     }
+    if (simulationRef.current) {
+      clearInterval(simulationRef.current);
+      simulationRef.current = null;
+    }
   }, []);
 
   /* ── Geocode and place ONE destination marker for `trade` ── */
@@ -152,7 +177,7 @@ function GoogleMapPanel({ trades, allTradesCount, selectedTrade, onSelectTrade }
         title: `Destination: ${trade.deliveryAddress}`,
         icon: {
           path: window.google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
-          scale: 7,
+          scale: 12,
           fillColor: '#1d4ed8',
           fillOpacity: 1,
           strokeColor: '#ffffff',
@@ -209,13 +234,13 @@ function GoogleMapPanel({ trades, allTradesCount, selectedTrade, onSelectTrade }
       title: `Driver: ${trade.driverName}`,
       icon: {
         path: window.google.maps.SymbolPath.CIRCLE,
-        scale: 14,
+        scale: 22,
         fillColor: '#ef4444',
         fillOpacity: 1,
         strokeColor: '#ffffff',
         strokeWeight: 3,
       },
-      label: { text: '🚛', fontSize: '14px' },
+      label: { text: '🚛', fontSize: '22px' },
       animation: window.google.maps.Animation.DROP,
       zIndex: 20,
     });

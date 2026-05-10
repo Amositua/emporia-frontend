@@ -31,6 +31,7 @@ function GoogleMapPanel({ trades, allTradesCount, selectedTrade, onSelectTrade }
   const directionsService  = useRef(null);
   const directionsRenderer = useRef(null);
   const fallbackPolyline   = useRef(null);
+  const simulationRef      = useRef(null);
 
   const [driverStatus, setDriverStatus] = useState('idle');
 
@@ -84,6 +85,26 @@ function GoogleMapPanel({ trades, allTradesCount, selectedTrade, onSelectTrade }
       (result, status) => {
         if (status === 'OK') {
           directionsRenderer.current.setDirections(result);
+          
+          // --- SIMULATION LOGIC ---
+          const path = result.routes[0].overview_path;
+          const activeTradeId = selectedTrade?.tradeId;
+          const marker = driverMarkers.current[activeTradeId];
+          
+          if (path && path.length > 0 && marker) {
+            console.log('[Simulation] Starting Buyer-view movement for Trade:', activeTradeId);
+            let step = 0;
+            if (simulationRef.current) clearInterval(simulationRef.current);
+            simulationRef.current = setInterval(() => {
+              if (step >= path.length) {
+                console.log('[Simulation] Buyer-view reached destination.');
+                clearInterval(simulationRef.current);
+                return;
+              }
+              marker.setPosition(path[step]);
+              step++;
+            }, 150);
+          }
         } else {
           directionsRenderer.current.setDirections({ routes: [] });
           fallbackPolyline.current = new window.google.maps.Polyline({
@@ -101,6 +122,7 @@ function GoogleMapPanel({ trades, allTradesCount, selectedTrade, onSelectTrade }
   const clearRoute = useCallback(() => {
     if (directionsRenderer.current) directionsRenderer.current.setDirections({ routes: [] });
     if (fallbackPolyline.current) { fallbackPolyline.current.setMap(null); fallbackPolyline.current = null; }
+    if (simulationRef.current) { clearInterval(simulationRef.current); simulationRef.current = null; }
   }, []);
 
   /* ── Place destination marker ── */
@@ -120,7 +142,7 @@ function GoogleMapPanel({ trades, allTradesCount, selectedTrade, onSelectTrade }
         title: `Delivery: ${trade.deliveryAddress}`,
         icon: {
           path: window.google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
-          scale: 7, fillColor: '#1d4ed8', fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 2.5, rotation: 0,
+          scale: 12, fillColor: '#1d4ed8', fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 2.5, rotation: 0,
         },
         animation: window.google.maps.Animation.DROP,
         zIndex: 10,
@@ -166,9 +188,9 @@ function GoogleMapPanel({ trades, allTradesCount, selectedTrade, onSelectTrade }
       title: `Driver`,
       icon: {
         path: window.google.maps.SymbolPath.CIRCLE,
-        scale: 14, fillColor: '#ef4444', fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 3,
+        scale: 22, fillColor: '#ef4444', fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 3,
       },
-      label: { text: '🚛', fontSize: '14px' },
+      label: { text: '🚛', fontSize: '22px' },
       animation: window.google.maps.Animation.DROP,
       zIndex: 20,
     });

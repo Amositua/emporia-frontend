@@ -31,6 +31,7 @@ function MapPanel({ trade }) {
   const driverMarker       = useRef(null);
   const destMarker         = useRef(null);
   const pendingIdRef       = useRef(null);
+  const simulationRef      = useRef(null);
 
   /* 'idle' | 'available' | 'unavailable' */
   const [driverStatus, setDriverStatus] = useState('idle');
@@ -73,6 +74,24 @@ function MapPanel({ trade }) {
       (result, status) => {
         if (status === 'OK') {
           directionsRenderer.current.setDirections(result);
+          
+          // --- SIMULATION LOGIC ---
+          const path = result.routes[0].overview_path;
+          if (path && path.length > 0 && driverMarker.current) {
+            let step = 0;
+            if (simulationRef.current) clearInterval(simulationRef.current);
+            
+            console.log('[Simulation] Starting movement for Trade:', trade.tradeId);
+            simulationRef.current = setInterval(() => {
+              if (step >= path.length) {
+                console.log('[Simulation] Destination reached.');
+                clearInterval(simulationRef.current);
+                return;
+              }
+              driverMarker.current.setPosition(path[step]);
+              step++;
+            }, 150); // Slightly slower for smoother feel
+          }
         } else {
           directionsRenderer.current.setDirections({ routes: [] });
           fallbackPolyline.current = new window.google.maps.Polyline({
@@ -92,6 +111,7 @@ function MapPanel({ trade }) {
     if (fallbackPolyline.current)   { fallbackPolyline.current.setMap(null); fallbackPolyline.current = null; }
     if (driverMarker.current)       { driverMarker.current.setMap(null); driverMarker.current = null; }
     if (destMarker.current)         { destMarker.current.setMap(null);   destMarker.current   = null; }
+    if (simulationRef.current)      { clearInterval(simulationRef.current); simulationRef.current = null; }
     pendingIdRef.current = null;
   }, []);
 
@@ -122,7 +142,7 @@ function MapPanel({ trade }) {
           title: `Destination: ${trade.deliveryAddress}`,
           icon: {
             path: window.google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
-            scale: 7, fillColor: '#1d4ed8', fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 2.5, rotation: 0,
+            scale: 12, fillColor: '#1d4ed8', fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 2.5, rotation: 0,
           },
           animation: window.google.maps.Animation.DROP,
           zIndex: 10,
@@ -176,9 +196,9 @@ function MapPanel({ trade }) {
         title: 'Your Location',
         icon: {
           path: window.google.maps.SymbolPath.CIRCLE,
-          scale: 14, fillColor: '#ef4444', fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 3,
+          scale: 22, fillColor: '#ef4444', fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 3,
         },
-        label: { text: '🚛', fontSize: '14px' },
+        label: { text: '🚛', fontSize: '22px' },
         animation: window.google.maps.Animation.DROP,
         zIndex: 20,
       });
@@ -209,16 +229,16 @@ function MapPanel({ trade }) {
     placeDriver();
     placeDestination();
 
-    /* Poll GPS every 5 seconds (Live) */
-    const interval = setInterval(() => {
-      const loc = driverApi.getDriverLocation(tradeId);
-      if (loc?.lat && loc?.lng && driverMarker.current) {
-        driverMarker.current.setPosition({ lat: loc.lat, lng: loc.lng });
-        if (destMarker.current) drawRoute({ lat: loc.lat, lng: loc.lng }, destMarker.current.getPosition());
-      }
-    }, 5000);
+    /* Poll GPS every 5 seconds (Live) - Disabled during simulation demo */
+    // const interval = setInterval(() => {
+    //   const loc = driverApi.getDriverLocation(tradeId);
+    //   if (loc?.lat && loc?.lng && driverMarker.current) {
+    //     driverMarker.current.setPosition({ lat: loc.lat, lng: loc.lng });
+    //     if (destMarker.current) drawRoute({ lat: loc.lat, lng: loc.lng }, destMarker.current.getPosition());
+    //   }
+    // }, 5000);
 
-    return () => { clearInterval(interval); clearAll(); };
+    return () => { clearAll(); };
   }, [trade?.tradeId, clearAll, drawRoute]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
