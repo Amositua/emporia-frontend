@@ -25,14 +25,18 @@ const messaging = firebase.messaging();
 
 // Show a notification when a message is received in the background
 messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Background message:', payload);
+  console.log('Background message received', payload);
+  
+  // Use the notification object OR the data object as a fallback
+  const title = payload.notification?.title || payload.data?.title || "Emporia Update";
+  const body = payload.notification?.body || payload.data?.body || "Check your dashboard for details.";
 
-  const { title, body, icon } = payload.notification ?? {};
+  const notificationOptions = {
+    body: body,
+    icon: '/favicon.ico',
+    tag: 'emporia-notification', // Prevents duplicate pop-ups
+    requireInteraction: true
+  };
 
-  self.registration.showNotification(title || 'Emporia Notification', {
-    body:  body  || 'You have a new notification.',
-    icon:  icon  || '/favicon.ico',
-    badge: '/favicon.ico',
-    data:  payload.data,
-  });
+  return self.registration.showNotification(title, notificationOptions);
 });
