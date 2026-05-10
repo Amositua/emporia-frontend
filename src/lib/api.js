@@ -136,6 +136,16 @@ export const sellerApi = {
       body: { driverPhoneNumber },
     });
   },
+  async getSellerFinancials() {
+    const stored = localStorage.getItem('emporia_user');
+    const user = stored ? JSON.parse(stored) : null;
+    const token = user?.token || user?.accessToken || user?.access_token;
+
+    return apiClient.request('/payment/seller/all/payment-details', {
+      method: 'GET',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  },
 };
 
 export const buyerApi = {
@@ -207,6 +217,28 @@ export const buyerApi = {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
   },
+
+  async unflagTrade(tradeId) {
+    const stored = localStorage.getItem('emporia_user');
+    const user = stored ? JSON.parse(stored) : null;
+    const token = user?.token || user?.accessToken || user?.access_token;
+
+    return apiClient.request(`/trade/${tradeId}/unflag`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  },
+
+  async getBuyerFinancials() {
+    const stored = localStorage.getItem('emporia_user');
+    const user = stored ? JSON.parse(stored) : null;
+    const token = user?.token || user?.accessToken || user?.access_token;
+
+    return apiClient.request('/payment/buyer/all/payment-details', {
+      method: 'GET',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  },
 };
 
 export const driverApi = {
@@ -249,6 +281,17 @@ export const driverApi = {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: { deliveryCode },
+    });
+  },
+
+  async rejectTrade(tradeId) {
+    const stored = localStorage.getItem('emporia_user');
+    const user = stored ? JSON.parse(stored) : null;
+    const token = user?.token || user?.accessToken || user?.access_token;
+
+    return apiClient.request(`/trade/${tradeId}/driver-reject`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
   },
 

@@ -4,14 +4,15 @@ import { useSellerTrades } from '../../hooks/useProfile';
 import { driverApi } from '../../lib/api';
 
 /* ── helpers ── */
-const ACTIVE_STATUSES = ['ACTIVE', 'IN_TRANSIT'];
+const ACTIVE_STATUSES = ['ACTIVE', 'IN_TRANSIT', 'DRIVER_ASSIGNED'];
 
 const STATUS_CONFIG = {
-  IN_TRANSIT:   { dot: 'bg-blue-500',  badge: 'bg-blue-100 text-blue-700',   label: 'In Transit' },
-  ACTIVE:       { dot: 'bg-red-500',  badge: 'bg-red-100 text-red-700',   label: 'Active' },
-  DELIVERED:    { dot: 'bg-green-500', badge: 'bg-green-100 text-green-700', label: 'Completed' },
-  COMPLETED:    { dot: 'bg-green-500', badge: 'bg-green-100 text-green-700', label: 'Completed' },
-  BUYER_JOINED: { dot: 'bg-indigo-500', badge: 'bg-indigo-100 text-indigo-700', label: 'Buyer Joined' },
+  IN_TRANSIT:      { dot: 'bg-blue-500',   badge: 'bg-blue-100 text-blue-700',   label: 'In Transit' },
+  ACTIVE:          { dot: 'bg-red-500',    badge: 'bg-red-100 text-red-700',    label: 'Active' },
+  DRIVER_ASSIGNED: { dot: 'bg-purple-500', badge: 'bg-purple-100 text-purple-700', label: 'Driver Assigned' },
+  DELIVERED:       { dot: 'bg-green-500',  badge: 'bg-green-100 text-green-700', label: 'Completed' },
+  COMPLETED:       { dot: 'bg-green-500',  badge: 'bg-green-100 text-green-700', label: 'Completed' },
+  BUYER_JOINED:    { dot: 'bg-indigo-500', badge: 'bg-indigo-100 text-indigo-700', label: 'Buyer Joined' },
 };
 
 
@@ -267,7 +268,8 @@ function GoogleMapPanel({ trades, allTradesCount, selectedTrade, onSelectTrade }
     if (!mapObj.current || !window.google?.maps) return;
 
     const poll = () => {
-      trades.forEach(trade => {
+      const targets = selectedTrade ? [selectedTrade] : trades;
+      targets.forEach(trade => {
         const loc = driverApi.getDriverLocation(trade.tradeId);
         if (loc?.lat && loc?.lng) {
           placeDriverMarker(trade, loc.lat, loc.lng, selectedTrade?.tradeId);
@@ -276,11 +278,12 @@ function GoogleMapPanel({ trades, allTradesCount, selectedTrade, onSelectTrade }
     };
 
     poll();
-    const interval = setInterval(poll, 300000);  // refresh every 5 minutes
+    const interval = setInterval(poll, 5000);  // refresh every 5 seconds (Live GPS)
 
     return () => {
       clearInterval(interval);
-      const currentIds = new Set(trades.map(t => t.tradeId));
+      const targets = selectedTrade ? [selectedTrade] : trades;
+      const currentIds = new Set(targets.map(t => t.tradeId));
       Object.keys(driverMarkers.current).forEach(id => {
         if (!currentIds.has(id)) {
           driverMarkers.current[id].setMap(null);

@@ -4,15 +4,15 @@ import { useBuyerTrades } from '../../hooks/useProfile';
 import { driverApi } from '../../lib/api';
 
 /* ── helpers ── */
-const ACTIVE_STATUSES = ['ACTIVE', 'IN_TRANSIT'];
+const ACTIVE_STATUSES = ['ACTIVE', 'IN_TRANSIT', 'DRIVER_ASSIGNED'];
 
 const STATUS_CONFIG = {
   IN_TRANSIT:      { badge: 'bg-blue-100 text-blue-700',   label: 'In Transit' },
   ACTIVE:          { badge: 'bg-red-100 text-red-700',     label: 'Active' },
+  DRIVER_ASSIGNED: { badge: 'bg-purple-100 text-purple-700', label: 'Driver Assigned' },
   DELIVERED:       { badge: 'bg-green-100 text-green-700', label: 'Delivered' },
   COMPLETED:       { badge: 'bg-green-100 text-green-700', label: 'Completed' },
   BUYER_JOINED:    { badge: 'bg-indigo-100 text-indigo-700', label: 'Buyer Joined' },
-  DRIVER_ASSIGNED: { badge: 'bg-cyan-100 text-cyan-700',   label: 'Driver Assigned' },
 };
 
 
@@ -178,7 +178,7 @@ function GoogleMapPanel({ trades, allTradesCount, selectedTrade, onSelectTrade }
         <div style="font-family:sans-serif;padding:6px 4px;min-width:200px">
           <p style="margin:0 0 4px;font-size:10px;font-weight:900;color:#ef4444;text-transform:uppercase;letter-spacing:.08em">🚛 Driver Location</p>
           <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#0f172a">${trade.goods ?? '—'}</p>
-          <p style="margin:4px 0 0;font-size:10px;color:#94a3b8">Live GPS — updates every 5 min</p>
+          <p style="margin:4px 0 0;font-size:10px;color:#94a3b8">Live GPS — updates every 5s</p>
         </div>
       `);
       infoWin.current?.open(mapObj.current, marker);
@@ -214,7 +214,8 @@ function GoogleMapPanel({ trades, allTradesCount, selectedTrade, onSelectTrade }
     if (!mapObj.current || !window.google?.maps) return;
 
     const poll = () => {
-      trades.forEach(trade => {
+      const targets = selectedTrade ? [selectedTrade] : trades;
+      targets.forEach(trade => {
         const loc = driverApi.getDriverLocation(trade.tradeId);
         if (loc?.lat && loc?.lng) {
           placeDriverMarker(trade, loc.lat, loc.lng, selectedTrade?.tradeId);
@@ -223,11 +224,12 @@ function GoogleMapPanel({ trades, allTradesCount, selectedTrade, onSelectTrade }
     };
 
     poll();
-    const interval = setInterval(poll, 300000);
+    const interval = setInterval(poll, 5000);  // refresh every 5 seconds (Live GPS)
 
     return () => {
       clearInterval(interval);
-      const currentIds = new Set(trades.map(t => t.tradeId));
+      const targets = selectedTrade ? [selectedTrade] : trades;
+      const currentIds = new Set(targets.map(t => t.tradeId));
       Object.keys(driverMarkers.current).forEach(id => {
         if (!currentIds.has(id)) {
           driverMarkers.current[id].setMap(null);

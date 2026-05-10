@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { FCMProvider } from './components/FCMProvider';
 import ScrollToTop from './components/ScrollToTop';
 import { RoleSelection } from './pages/RoleSelection';
 import { LandingPage } from './pages/LandingPage';
@@ -31,7 +32,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter>
+        <FCMProvider>
+          <BrowserRouter>
           <ScrollToTop />
           <Routes>
             <Route path="/" element={<LandingPage />} />
@@ -163,6 +165,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
+        </FCMProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

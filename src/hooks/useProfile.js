@@ -108,6 +108,16 @@ export function useFlagTrade() {
   });
 }
 
+export function useUnflagTrade() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (tradeId) => buyerApi.unflagTrade(tradeId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['buyerTrades'] });
+    },
+  });
+}
+
 export function useInitializePayment() {
   return useMutation({
     mutationFn: ({ tradeId, data }) => buyerApi.initializePayment(tradeId, data),
@@ -149,5 +159,29 @@ export function useConfirmDelivery() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['driverTrades'] });
     },
+  });
+}
+
+export function useDriverRejectTrade() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (tradeId) => driverApi.rejectTrade(tradeId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['driverTrades'] });
+    },
+  });
+}
+
+export function useSellerFinancials() {
+  return useQuery({
+    queryKey: ['sellerFinancials'],
+    queryFn: () => sellerApi.getSellerFinancials(),
+  });
+}
+
+export function useBuyerFinancials() {
+  return useQuery({
+    queryKey: ['buyerFinancials'],
+    queryFn: () => buyerApi.getBuyerFinancials(),
   });
 }

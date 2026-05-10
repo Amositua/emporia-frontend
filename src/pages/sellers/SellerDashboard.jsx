@@ -10,8 +10,9 @@ import { SellerDriversTab } from './SellerDriversTab';
 import { SellerAssignGoodsTab } from './SellerAssignGoodsTab';
 import { SellerFlaggedTab } from './SellerFlaggedTab';
 import { SellerLiveTrackingTab } from './SellerLiveTrackingTab';
+import { SellerFinancialTab } from './SellerFinancialTab';
 import { useEffect } from 'react';
-import { useSellerTrades } from '../../hooks/useProfile';
+import { useSellerTrades, useBankAccountDetails } from '../../hooks/useProfile';
 import { useNavigate } from 'react-router-dom';
 
 export function SellerDashboard() {
@@ -19,7 +20,8 @@ export function SellerDashboard() {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'overview');
   const [isBankModalOpen, setIsBankModalOpen] = useState(false);
-  const [hasBankInfo, setHasBankInfo] = useState(() => localStorage.getItem('emporia_bank_set') === 'true');
+  const { data: bankData, isLoading: bankLoading, refetch: refetchBank } = useBankAccountDetails();
+  const hasBankInfo = !!(bankData?.accountNumber && bankData?.accountName && bankData?.bankName);
   
   // Sync tab with location state
   useEffect(() => {
@@ -34,20 +36,20 @@ export function SellerDashboard() {
   }, [activeTab]);
 
   useEffect(() => {
-    // Show modal if bank details haven't been set in this browser
-    const hasSetBank = localStorage.getItem('emporia_bank_set');
-    if (!hasSetBank) {
+    // Show modal if bank details haven't been set and they haven't seen the popup in this session
+    const hasSeenPopup = sessionStorage.getItem('emporia_bank_popup_seen');
+    if (!bankLoading && !hasBankInfo && !hasSeenPopup) {
       const timer = setTimeout(() => {
         setIsBankModalOpen(true);
-      }, 1500); // Slight delay for better UX
+        sessionStorage.setItem('emporia_bank_popup_seen', 'true');
+      }, 1500);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [bankLoading, hasBankInfo]);
 
   const handleBankModalClose = () => {
     setIsBankModalOpen(false);
-    localStorage.setItem('emporia_bank_set', 'true');
-    setHasBankInfo(true);
+    refetchBank();
   };
 
   const { data: tradesData, isLoading: tradesLoading } = useSellerTrades();
@@ -93,7 +95,8 @@ export function SellerDashboard() {
                 {activeTab === 'buyers' && 'Buyer Directory'}
                 {activeTab === 'drivers' && 'Driver Directory'}
                 {activeTab === 'goods' && 'Assign Goods to Drivers'}
-                {activeTab !== 'overview' && activeTab !== 'trade' && activeTab !== 'buyers' && activeTab !== 'drivers' && activeTab !== 'goods' && activeTab.replace('-', ' ')}
+                {/* {activeTab === 'financials' && 'Financial Records'} */}
+                {activeTab !== 'overview' && activeTab !== 'trade' && activeTab !== 'buyers' && activeTab !== 'drivers' && activeTab !== 'goods' && activeTab !== 'financials' && activeTab.replace('-', ' ')}
               </h1>
               <p className="text-slate-600">
                 {activeTab === 'overview' && 'Institutional Seller Portal Overview'}
@@ -101,9 +104,10 @@ export function SellerDashboard() {
                 {activeTab === 'buyers' && 'Manage institutional relationships and verified procurement partners'}
                 {activeTab === 'drivers' && 'Access our network of verified institutional logistics partners'}
                 {activeTab === 'goods' && 'Generate onboarding links for drivers to begin shipment protocols'}
+                {/* {activeTab === 'financials' && 'Manage settlement history and track funds in custody'} */}
               </p>
             </div>
-            {!hasBankInfo && (
+            {!bankLoading && !hasBankInfo && (
               <button
                 onClick={() => setIsBankModalOpen(true)}
                 className="flex items-center justify-center gap-2 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-all font-bold shadow-md hover:shadow-lg text-sm uppercase tracking-wider"
@@ -229,6 +233,10 @@ export function SellerDashboard() {
 
         {activeTab === 'tracking' && (
           <SellerLiveTrackingTab />
+        )}
+
+        {activeTab === 'financials' && (
+          <SellerFinancialTab />
         )}
 
         {/* {activeTab !== 'overview' && activeTab !== 'trade' && activeTab !== 'buyers' && activeTab !== 'drivers' && activeTab !== 'goods' && activeTab !== 'flagged' && activeTab !== 'tracking' && (

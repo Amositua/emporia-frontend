@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
  * @param {string} requiredRole - if provided, user.role must match this value
  * @param {string} redirectTo   - where to send unauthenticated users (default: "/")
  */
-export function ProtectedRoute({ children, requiredRole, redirectTo = '/' }) {
+export function ProtectedRoute({ children, requiredRole, redirectTo = '/get-started' }) {
   const { user } = useAuth();
 
   if (!user) {

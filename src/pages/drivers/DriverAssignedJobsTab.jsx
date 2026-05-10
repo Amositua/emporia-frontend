@@ -5,7 +5,7 @@ import {
   Loader2, AlertCircle, MapPin, ChevronLeft, ChevronRight,
   TrendingUp, Eye, CheckCircle2,
 } from 'lucide-react';
-import { useDriverTrades, useDriverAcceptTrade } from '../../hooks/useProfile';
+import { useDriverTrades, useDriverAcceptTrade, useDriverRejectTrade } from '../../hooks/useProfile';
 import { driverApi } from '../../lib/api';
 
 /* ── helpers ── */
@@ -54,8 +54,10 @@ export function DriverAssignedJobsTab() {
   const [dateTo, setDateTo]       = useState('');
   const [page, setPage]           = useState(1);
   const [acceptErrors, setAcceptErrors] = useState({}); // tradeId → error msg
+  const [rejectErrors, setRejectErrors] = useState({}); // tradeId → error msg
 
   const acceptMutation = useDriverAcceptTrade();
+  const rejectMutation = useDriverRejectTrade();
 
   /* tradeIds being geo-watched */
   const [trackedTrades, setTrackedTrades] = useState({});     // tradeId → 'watching' | 'denied' | 'error'
@@ -110,9 +112,10 @@ export function DriverAssignedJobsTab() {
 
         const watchId = navigator.geolocation.watchPosition(
           (pos) => {
-            const { latitude: lat, longitude: lng } = pos.coords;
+            const { latitude: lat, longitude: lng, accuracy } = pos.coords;
             driverApi.saveDriverLocation(tradeId, lat, lng);
             setTrackedTrades((p) => ({ ...p, [tradeId]: 'watching' }));
+            console.log(`[Location] Trade ${tradeId}: lat=${lat}, lng=${lng}, accuracy=${accuracy}m`);
           },
           (err) => {
             if (err.code === err.PERMISSION_DENIED) {
@@ -121,13 +124,23 @@ export function DriverAssignedJobsTab() {
               setTrackedTrades((p) => ({ ...p, [tradeId]: 'error' }));
             }
           },
-          { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
+          { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 }
         );
         watchersRef.current[tradeId] = watchId;
       },
       onError: (err) => {
         const msg = err?.message || 'Failed to accept. Please try again.';
         setAcceptErrors((prev) => ({ ...prev, [tradeId]: msg }));
+      },
+    });
+  };
+
+  const handleReject = (tradeId) => {
+    setRejectErrors((prev) => { const n = { ...prev }; delete n[tradeId]; return n; });
+    rejectMutation.mutate(tradeId, {
+      onError: (err) => {
+        const msg = err?.message || 'Failed to reject. Please try again.';
+        setRejectErrors((prev) => ({ ...prev, [tradeId]: msg }));
       },
     });
   };
@@ -353,19 +366,35 @@ export function DriverAssignedJobsTab() {
                           </span>
                         ) : (
                           <div className="flex flex-col gap-1">
-                            <button
-                              onClick={() => handleAccept(trade.tradeId)}
-                              disabled={isPending}
-                              className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white text-xs font-bold uppercase tracking-wide rounded transition shadow-sm"
-                            >
-                              {isPending ? (
-                                <><Loader2 className="w-3 h-3 animate-spin" /> Accepting…</>
-                              ) : (
-                                'Accept'
-                              )}
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleAccept(trade.tradeId)}
+                                disabled={isPending || rejectMutation.isPending}
+                                className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white text-xs font-bold uppercase tracking-wide rounded transition shadow-sm"
+                              >
+                                {isPending ? (
+                                  <><Loader2 className="w-3 h-3 animate-spin" /> Accepting…</>
+                                ) : (
+                                  'Accept'
+                                )}
+                              </button>
+                              <button
+                                onClick={() => handleReject(trade.tradeId)}
+                                disabled={isPending || rejectMutation.isPending}
+                                className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 text-xs font-bold uppercase tracking-wide rounded transition border border-slate-200 shadow-sm"
+                              >
+                                {rejectMutation.isPending && rejectMutation.variables === trade.tradeId ? (
+                                  <><Loader2 className="w-3 h-3 animate-spin" /> Rejecting…</>
+                                ) : (
+                                  'Reject'
+                                )}
+                              </button>
+                            </div>
                             {acceptErr && (
                               <p className="text-[10px] text-red-500 font-medium max-w-[120px] leading-tight">{acceptErr}</p>
+                            )}
+                            {rejectErrors[trade.tradeId] && (
+                              <p className="text-[10px] text-red-500 font-medium max-w-[120px] leading-tight">{rejectErrors[trade.tradeId]}</p>
                             )}
                           </div>
                         )}

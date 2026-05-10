@@ -10,7 +10,7 @@ export function SellerNav({ activeTab, onTabChange }) {
 
   const handleLogout = () => {
     logout();
-    navigate('/seller/onboarding');
+    navigate('/get-started');
   };
 
   const tabs = [

@@ -17,7 +17,7 @@ import {
   Mail,
   CreditCard
 } from 'lucide-react';
-import { useBuyerTrades, useFlagTrade, useInitializePayment, useVerifyPayment } from '../../hooks/useProfile';
+import { useBuyerTrades, useFlagTrade, useUnflagTrade, useInitializePayment, useVerifyPayment } from '../../hooks/useProfile';
 import { useAuth } from '../../context/AuthContext';
 
 /* ── helpers ── */
@@ -140,6 +140,7 @@ export function BuyerLogisticsTab() {
   const { user } = useAuth();
   const { data, isLoading, error, refetch } = useBuyerTrades();
   const flagTradeMutation = useFlagTrade();
+  const unflagMutation = useUnflagTrade();
   const paymentMutation = useInitializePayment();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -361,17 +362,41 @@ export function BuyerLogisticsTab() {
                         >
                           View Details
                         </button>
-                        <button 
-                          onClick={() => setSelectedTrade(trade)}
-                          disabled={trade.tradeStatus === 'FLAGGED' || trade.paymentStatus === 'ESCROW_FUNDED'}
-                          className={`transition flex-shrink-0 ${
-                            (trade.tradeStatus === 'FLAGGED' || trade.paymentStatus === 'ESCROW_FUNDED') 
-                              ? 'text-red-500 cursor-not-allowed opacity-50' 
-                              : 'text-slate-300 hover:text-red-500'
-                          }`}
-                        >
-                          <Flag className="w-4 h-4" />
-                        </button>
+                        {trade.tradeStatus === 'FLAGGED' ? (
+                          <button 
+                            onClick={async () => {
+                              if (window.confirm('Are you sure you want to resolve this dispute and unflag this trade?')) {
+                                try {
+                                  await unflagMutation.mutateAsync(trade.tradeId);
+                                  refetch();
+                                } catch (err) {
+                                  console.error(err);
+                                }
+                              }
+                            }}
+                            disabled={unflagMutation.isPending && unflagMutation.variables === trade.tradeId}
+                            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-widest shadow-sm transition disabled:opacity-50 flex items-center gap-1.5"
+                          >
+                            {unflagMutation.isPending && unflagMutation.variables === trade.tradeId ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <ShieldCheck className="w-3 h-3" />
+                            )}
+                            RESOLVE
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => setSelectedTrade(trade)}
+                            disabled={trade.paymentStatus === 'ESCROW_FUNDED'}
+                            className={`transition flex-shrink-0 ${
+                              trade.paymentStatus === 'ESCROW_FUNDED' 
+                                ? 'text-slate-200 cursor-not-allowed' 
+                                : 'text-slate-300 hover:text-red-500'
+                            }`}
+                          >
+                            <Flag className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

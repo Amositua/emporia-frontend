@@ -30,6 +30,7 @@ function MapPanel({ trade }) {
   const fallbackPolyline   = useRef(null);
   const driverMarker       = useRef(null);
   const destMarker         = useRef(null);
+  const pendingIdRef       = useRef(null);
 
   /* 'idle' | 'available' | 'unavailable' */
   const [driverStatus, setDriverStatus] = useState('idle');
@@ -91,6 +92,7 @@ function MapPanel({ trade }) {
     if (fallbackPolyline.current)   { fallbackPolyline.current.setMap(null); fallbackPolyline.current = null; }
     if (driverMarker.current)       { driverMarker.current.setMap(null); driverMarker.current = null; }
     if (destMarker.current)         { destMarker.current.setMap(null);   destMarker.current   = null; }
+    pendingIdRef.current = null;
   }, []);
 
   /* ── Rebuild markers whenever the selected trade changes ── */
@@ -108,6 +110,9 @@ function MapPanel({ trade }) {
       geocoderRef.current.geocode({ address: trade.deliveryAddress }, (res, status) => {
         if (status !== 'OK' || !res?.[0]?.geometry?.location) return;
         if (!mapObj.current) return;
+        
+        // Match the 'pending ID' solution used for arrows to prevent duplicates
+        if (pendingIdRef.current !== trade.tradeId) return;
 
         const pos = res[0].geometry.location;
 
@@ -155,6 +160,9 @@ function MapPanel({ trade }) {
       const loc = driverApi.getDriverLocation(tradeId);
       if (!loc?.lat || !loc?.lng) return;
 
+      // Only place if this is still the pending trade
+      if (pendingIdRef.current !== tradeId) return;
+
       if (driverMarker.current) {
         driverMarker.current.setPosition({ lat: loc.lat, lng: loc.lng });
         /* Redraw route from new position */
@@ -197,17 +205,18 @@ function MapPanel({ trade }) {
       }
     };
 
+    pendingIdRef.current = tradeId;
     placeDriver();
     placeDestination();
 
-    /* Poll GPS every 5 minutes */
+    /* Poll GPS every 5 seconds (Live) */
     const interval = setInterval(() => {
       const loc = driverApi.getDriverLocation(tradeId);
       if (loc?.lat && loc?.lng && driverMarker.current) {
         driverMarker.current.setPosition({ lat: loc.lat, lng: loc.lng });
         if (destMarker.current) drawRoute({ lat: loc.lat, lng: loc.lng }, destMarker.current.getPosition());
       }
-    }, 300000);
+    }, 5000);
 
     return () => { clearInterval(interval); clearAll(); };
   }, [trade?.tradeId, clearAll, drawRoute]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -355,7 +364,7 @@ export function DriverActiveShipmentsTab() {
 
   const activeTrades = useMemo(() => {
     const all = data?.dashboardRecords ?? [];
-    return all.filter((t) => ['ACTIVE', 'IN_TRANSIT', 'BUYER_JOINED'].includes(t.tradeStatus));
+    return all.filter((t) => ['ACTIVE', 'IN_TRANSIT', 'BUYER_JOINED', 'DRIVER_ASSIGNED'].includes(t.tradeStatus));
   }, [data]);
 
   const filtered = useMemo(() => {

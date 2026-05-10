@@ -18,6 +18,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useBuyerTrades, useUpdateTradeAddress } from '../../hooks/useProfile';
 import { BuyerLogisticsTab } from './BuyerLogisticsTab';
 import { BuyerLiveTrackingTab } from './BuyerLiveTrackingTab';
+import { BuyerFinancialTab } from './BuyerFinancialTab';
 
 /* ── helpers ── */
 function formatAmount(val) {
@@ -593,8 +594,13 @@ export function BuyerDashboard() {
           <BuyerLiveTrackingTab />
         )}
 
+        {/* ── Payment / Financial tab ── */}
+        {activeTab === 'payment' && (
+          <BuyerFinancialTab />
+        )}
+
         {/* ── Other tabs ── */}
-        {activeTab !== 'overview' && activeTab !== 'sellers' && activeTab !== 'logistics' && activeTab !== 'live-tracking' && (
+        {activeTab !== 'overview' && activeTab !== 'sellers' && activeTab !== 'logistics' && activeTab !== 'live-tracking' && activeTab !== 'payment' && (
           <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
             <p className="text-slate-500 text-base">
               {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} section coming soon
