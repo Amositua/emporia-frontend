@@ -13,13 +13,12 @@ importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
 
 firebase.initializeApp({
-  apiKey: "AIzaSyDWYNKDdo0u16p-jPfkmUqX_kNgaamScjo",
-  authDomain: "emporia-fac5f.firebaseapp.com",
-  projectId: "emporia-fac5f",
-  storageBucket: "emporia-fac5f.firebasestorage.app",
-  messagingSenderId: "663280977524",
-  appId: "1:663280977524:web:735c0692de9762c7773321",
-  measurementId: "G-TRJQQYCWZF"
+  apiKey: "AIzaSyBhh6XGVnoDSGSf2QlbQGq97VVfx8wWWCs",
+  authDomain: "emporia-web.firebaseapp.com",
+  projectId: "emporia-web",
+  storageBucket: "emporia-web.firebasestorage.app",
+  messagingSenderId: "871729126742",
+  appId: "1:871729126742:web:f251083d67a9ec22c3caf7"
 });
 
 const messaging = firebase.messaging();

@@ -71,16 +71,39 @@ export function useFCM(user) {
     registerToken();
 
     // 4. Listen for foreground messages (tab is open and active)
+    // const unsubscribe = onMessage(messaging, (payload) => {
+    //   console.log('[FCM] Foreground message received:', payload);
+
+    //   // Fallback to data payload if notification payload is missing (data-only messages)
+    //   const title = payload.notification?.title || payload.data?.title || 'Emporia';
+    //   const body  = payload.notification?.body  || payload.data?.body  || 'You have a new update.';
+
+    //   // Show a native browser notification even when tab is in focus
+    //   if (Notification.permission === 'granted') {
+    //     new Notification(title, {
+    //       body:  body,
+    //       icon:  '/favicon.ico',
+    //     });
+    //   }
+    // });
+
+    // 4. Listen for foreground messages (tab is open and active)
     const unsubscribe = onMessage(messaging, (payload) => {
       console.log('[FCM] Foreground message received:', payload);
 
-      const { title, body } = payload.notification ?? {};
+      const title = payload.notification?.title || payload.data?.title || 'Emporia Notification';
+      const body  = payload.notification?.body  || payload.data?.body  || 'You have a new update.';
+      const icon  = payload.notification?.icon  || '/favicon.ico';
 
-      // Show a native browser notification even when tab is in focus
+      // Force the native OS notification via the Service Worker
       if (Notification.permission === 'granted') {
-        new Notification(title || 'Emporia', {
-          body:  body || 'You have a new update.',
-          icon:  '/favicon.ico',
+        navigator.serviceWorker.ready.then((registration) => {
+          registration.showNotification(title, {
+            body: body,
+            icon: icon,
+            badge: '/favicon.ico', // Small icon for Android status bar
+            requireInteraction: true // Forces the notification to stay on screen until closed
+          });
         });
       }
     });
