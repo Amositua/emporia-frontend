@@ -56,7 +56,7 @@ export function useFCM(user) {
         const token = authUser?.token || authUser?.accessToken || authUser?.access_token;
 
         await apiClient.request('/notification/fcm-token', {
-          method: 'PUT',
+          method: 'POST',
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: { fcmToken },
         });

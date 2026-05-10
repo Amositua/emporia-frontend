@@ -110,12 +110,34 @@ export function DriverAssignedJobsTab() {
         }
         setTrackedTrades((p) => ({ ...p, [tradeId]: 'requesting' }));
 
-        const watchId = navigator.geolocation.watchPosition(
+        // Define options for high accuracy
+        const geoOptions = { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 };
+
+        // 1. Force a high-accuracy lock first
+        navigator.geolocation.getCurrentPosition(
           (pos) => {
             const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+            console.log(`[Location Init] lat=${lat}, lng=${lng}, accuracy=${accuracy}m`);
             driverApi.saveDriverLocation(tradeId, lat, lng);
             setTrackedTrades((p) => ({ ...p, [tradeId]: 'watching' }));
-            console.log(`[Location] Trade ${tradeId}: lat=${lat}, lng=${lng}, accuracy=${accuracy}m`);
+            
+            // 2. Start continuous watching after initial lock
+            const watchId = navigator.geolocation.watchPosition(
+              (watchPos) => {
+                const { latitude: wLat, longitude: wLng, accuracy: wAcc } = watchPos.coords;
+                // Ignore wildly inaccurate readings (often happens on initial pings)
+                // Note: Desktop PCs usually have >1000m accuracy due to lack of GPS.
+                if (wAcc > 2000) {
+                  console.warn(`[Location] Ignoring inaccurate ping (${wAcc}m)`);
+                  return;
+                }
+                driverApi.saveDriverLocation(tradeId, wLat, wLng);
+                console.log(`[Location Update] Trade ${tradeId}: lat=${wLat}, lng=${wLng}, accuracy=${wAcc}m`);
+              },
+              (err) => console.warn('[Location Watch Error]', err),
+              geoOptions
+            );
+            watchersRef.current[tradeId] = watchId;
           },
           (err) => {
             if (err.code === err.PERMISSION_DENIED) {
@@ -124,9 +146,8 @@ export function DriverAssignedJobsTab() {
               setTrackedTrades((p) => ({ ...p, [tradeId]: 'error' }));
             }
           },
-          { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 }
+          geoOptions
         );
-        watchersRef.current[tradeId] = watchId;
       },
       onError: (err) => {
         const msg = err?.message || 'Failed to accept. Please try again.';
